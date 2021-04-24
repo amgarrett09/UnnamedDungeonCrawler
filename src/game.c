@@ -163,7 +163,7 @@ void game_initialize_memory(Memory *memory, i32 dt) {
         tile_map5.right_connection = &tile_map1;
 
         world_state->current_tile_map = &tile_map1;
-        world_state->next_tile_map = NULL;
+        world_state->next_tile_map = &tile_map1;
         world_state->screen_transitioning = false;
         world_state->transition_direction = NULLDIR;
         world_state->transition_counter = 0;
@@ -365,10 +365,10 @@ void transition_screens(
     Direction transition_direction = world_state->transition_direction;
     if (world_state->transition_counter <= 0) {
         world_state->screen_transitioning = false;
-        if (world_state->next_tile_map) {
-            world_state->current_tile_map = world_state->next_tile_map;
-        }
+        world_state->current_tile_map = world_state->next_tile_map;
+
         player_state->keys = 0;
+
         switch (transition_direction) {
             case UPDIR:
                 player_state->tile_y += SCREEN_HEIGHT_TILES;
@@ -445,6 +445,7 @@ void transition_screens(
         new_map_x_offset,
         new_map_y_offset
     );
+
     render_tile_map(
         image_buffer, 
         (i32 *) world_state->current_tile_map->data,
