@@ -271,15 +271,18 @@ void game_update_and_render(
             bool is_up = !(keys & DOWN_MASK);
             i32 change = is_up ? -1 : 1;
             i32 new_tile_y = player_state->tile_y + change;
+            i32 tile_x = player_state->tile_x;
 
             bool is_not_colliding = true;
 
             if (
                 new_tile_y >= 0 &&
-                new_tile_y < SCREEN_HEIGHT_TILES
+                new_tile_y < SCREEN_HEIGHT_TILES &&
+                tile_x >= 0 &&
+                tile_x < SCREEN_WIDTH_TILES
             ) {
                 is_not_colliding = !current_tile_map[
-                    new_tile_y*SCREEN_WIDTH_TILES + player_state->tile_x
+                    new_tile_y*SCREEN_WIDTH_TILES + tile_x
                 ];
             }
 
@@ -292,15 +295,18 @@ void game_update_and_render(
             bool is_right = !(keys & LEFT_MASK);
             i32 change = is_right ? 1 : -1;
             i32 new_tile_x = player_state->tile_x + change;
+            i32 tile_y = player_state->tile_y;
 
             bool is_not_colliding = true;
 
             if (
                 new_tile_x >= 0 &&
-                new_tile_x < SCREEN_WIDTH_TILES
+                new_tile_x < SCREEN_WIDTH_TILES &&
+                tile_y >= 0 &&
+                tile_y < SCREEN_HEIGHT_TILES
             ) {
                 is_not_colliding = !current_tile_map[
-                    player_state->tile_y*SCREEN_WIDTH_TILES + new_tile_x
+                    tile_y*SCREEN_WIDTH_TILES + new_tile_x
                 ];
             }
 
