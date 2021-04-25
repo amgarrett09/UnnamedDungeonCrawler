@@ -148,7 +148,7 @@ void game_initialize_memory(Memory *memory, i32 dt) {
             convert_tile_to_pixel_coordinate(player_state->tile_y, Y_DIMENSION);
         player_state->move_counter = 0;
         player_state->move_direction = NULLDIR;
-        player_state->speed = (4 * dt) / 16;
+        player_state->speed = ((TILE_WIDTH / 10) * dt) / 16;
 
         tile_map1.top_connection = &tile_map2;
         tile_map1.right_connection = &tile_map3;
