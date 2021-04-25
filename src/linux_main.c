@@ -7,6 +7,11 @@
 
 #include <alsa/asoundlib.h>
 
+#include <stdint.h>
+#include <stdio.h>
+#include <stdbool.h>
+
+#include "game.h"
 #include "game.c"
 
 int main() {

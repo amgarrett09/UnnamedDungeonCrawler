@@ -1,5 +1,3 @@
-#include "game.h"
-
 static TileMap tile_map1 = {
     {
         { 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 },
@@ -424,7 +422,7 @@ void transition_screens(
     i32 old_map_x_offset = 0;
     i32 new_map_y_offset = 0;
     i32 new_map_x_offset = 0;
-    switch (world_state->transition_direction) {
+    switch (transition_direction) {
         case UPDIR:
             old_map_y_offset = WIN_HEIGHT - world_state->transition_counter;
             new_map_y_offset = old_map_y_offset - WIN_HEIGHT;

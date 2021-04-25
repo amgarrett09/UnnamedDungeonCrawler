@@ -1,10 +1,3 @@
-#ifndef H_GAME
-#define H_GAME
-
-#include <stdint.h>
-#include <stdio.h>
-#include <stdbool.h>
-
 #define WIN_X 10
 #define WIN_Y 10
 #define WIN_WIDTH 1280
@@ -131,4 +124,3 @@ i32 debug_platform_stream_audio(
     Sound *game_sound
 );
 
-#endif
