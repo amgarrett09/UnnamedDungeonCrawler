@@ -418,6 +418,8 @@ void transition_screens(
         world_state->transition_counter -= 20;
     }
 
+    // Old tile map moves off one side of screen, new tile map comes in
+    // from other side
     i32 old_map_y_offset = 0;
     i32 old_map_x_offset = 0;
     i32 new_map_y_offset = 0;
@@ -443,6 +445,7 @@ void transition_screens(
             break;
     }
 
+    // TODO: Refactor this so that it doesn't require two tile map draws?
     render_tile_map(
         image_buffer, 
         (i32 *) world_state->next_tile_map->data,
