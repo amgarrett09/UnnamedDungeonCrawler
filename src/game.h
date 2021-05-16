@@ -81,9 +81,15 @@ typedef struct {
 
 typedef struct {
     void *perm_storage;
-    i32 perm_storage_size;
+    size_t perm_storage_size;
     bool is_initialized;
 } Memory;
+
+typedef struct {
+    PlayerState *player_state;    
+    WorldState *world_state;
+    TileMap *tile_maps;
+} MemoryPartitions;
 
 typedef struct {
     Key key_pressed;         

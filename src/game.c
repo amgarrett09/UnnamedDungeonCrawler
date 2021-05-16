@@ -133,13 +133,17 @@ static TileMap tile_map5 = {
     NULL
 };
 
-
 void game_initialize_memory(Memory *memory, i32 dt) {
-    PlayerState *player_state = (PlayerState *)memory->perm_storage;
-    char * temp = (char *) player_state + 64;
-    WorldState *world_state = (WorldState *) temp;
+    MemoryPartitions *partitions = (MemoryPartitions *) memory->perm_storage;
 
     if (!memory->is_initialized) {
+        /* TODO: fucntion to get next aligned address */
+        partitions->player_state = (PlayerState *) (partitions + 1);
+        partitions->world_state = (WorldState *) (partitions->player_state + 1);
+
+        PlayerState *player_state = partitions->player_state;
+        WorldState *world_state = partitions->world_state;
+
         player_state->tile_x = 15;
         player_state->tile_y = 0;
         player_state->pixel_x = 
@@ -177,9 +181,9 @@ void game_update_and_render(
     i32 *restrict image_buffer,
     i32 dt
 ) {
-    PlayerState *player_state = (PlayerState *) memory->perm_storage;
-    char *temp = (char *) player_state + 64;
-    WorldState *world_state = (WorldState *) temp;
+    MemoryPartitions *partitions = (MemoryPartitions *) memory->perm_storage;
+    PlayerState *player_state = partitions->player_state;
+    WorldState *world_state = partitions->world_state;
     
     if (world_state->screen_transitioning) {
         transition_screens(
