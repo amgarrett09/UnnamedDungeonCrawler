@@ -60,9 +60,9 @@ main(int argc, char *argv[])
         visual = DefaultVisual(display, screen);
 
         window = XCreateSimpleWindow(display, RootWindow(display, screen), 
-                WIN_X, WIN_Y, WIN_WIDTH, WIN_HEIGHT, 
-                WIN_BORDER, BlackPixel(display, screen),   
-                BlackPixel(display, screen));
+            WIN_X, WIN_Y, WIN_WIDTH, WIN_HEIGHT, 
+            WIN_BORDER, BlackPixel(display, screen),   
+            BlackPixel(display, screen));
 
         gc = DefaultGC(display, screen);
 
@@ -70,7 +70,7 @@ main(int argc, char *argv[])
         XSetWMProtocols(display, window, &delete_window, 1);
 
         XSelectInput(display, window, 
-                ExposureMask | KeyPressMask | KeyReleaseMask);
+            ExposureMask | KeyPressMask | KeyReleaseMask);
 
         XMapWindow(display, window);
 
@@ -82,7 +82,7 @@ main(int argc, char *argv[])
 
         // TODO: Explore using Shm for this
         ximage = XCreateImage(display, visual, depth, ZPixmap, 0, image_buffer, 
-                WIN_WIDTH, WIN_HEIGHT, 32, 0);
+            WIN_WIDTH, WIN_HEIGHT, 32, 0);
 
         XkbSetDetectableAutoRepeat(display, true, NULL);
 
@@ -98,38 +98,38 @@ main(int argc, char *argv[])
 
                 // Interleaved mode
                 snd_pcm_hw_params_set_access(handle, params, 
-                        SND_PCM_ACCESS_RW_INTERLEAVED);
+                    SND_PCM_ACCESS_RW_INTERLEAVED);
 
                 // Stereo PCM 16 bit little-endian
                 snd_pcm_hw_params_set_format(handle, params, 
-                        SND_PCM_FORMAT_S16_LE);
+                    SND_PCM_FORMAT_S16_LE);
 
                 snd_pcm_hw_params_set_channels(handle, params, 2);
                 
                 sample_rate = 44100;
                 snd_pcm_hw_params_set_rate_near(handle, params, 
-                        &sample_rate, &dir);
+                    &sample_rate, &dir);
 
                 // Amount of frames in 16.67 ms + a little extra for some leeway
                 frames = 742;
 
                 snd_pcm_hw_params_set_period_size_near(handle, params, 
-                        &frames, &dir);
+                    &frames, &dir);
 
                 err = snd_pcm_hw_params(handle, params);
                 if (err < 0) {
                         fprintf(stderr, "failed to set hw parameters: %s\n", 
-                                snd_strerror(err));
+                            snd_strerror(err));
                 } else {
                         snd_pcm_hw_params_get_period_size(params, &frames, 
-                                &dir);
+                            &dir);
                         // Size of buffer should be one period
                         // with two channels and two bytes per sample
                         game_sound.sound_buffer_size = frames * 4;
                         game_sound.sound_buffer = 
                             (char *) malloc(game_sound.sound_buffer_size);
                         memset(game_sound.sound_buffer, 0, 
-                                game_sound.sound_buffer_size);
+                            game_sound.sound_buffer_size);
 
                         game_sound.sound_initialized = true;
                 }
@@ -191,11 +191,11 @@ main(int argc, char *argv[])
                 }
 
                 game_update_and_render(&memory, &input, &game_sound, 
-                        (i32 *)image_buffer, dt);
+                    (i32 *)image_buffer, dt);
 
                 if (game_sound.sound_playing && game_sound.sound_initialized) {
                         err = snd_pcm_writei(handle, game_sound.sound_buffer, 
-                                                frames);
+                            frames);
                         if (err < 0) {
                                 printf("%s\n", snd_strerror(err));
                                 snd_pcm_prepare(handle);
@@ -203,7 +203,7 @@ main(int argc, char *argv[])
                 }
 
                 XPutImage(display, window, gc, ximage, 0, 0, 0, 0, 
-                        WIN_WIDTH, WIN_HEIGHT);
+                    WIN_WIDTH, WIN_HEIGHT);
 
                 clock_gettime(CLOCK_REALTIME, &end);
 

@@ -99,19 +99,19 @@ typedef struct {
 
 void clear_image_buffer(i32 *image_buffer);
 void render_rectangle(i32 *image_buffer, i32 min_x, i32 min_y, i32 max_x,
-        i32 max_y,
-        float red,
-        float green,
-        float blue);
+    i32 max_y,
+    float red,
+    float green,
+    float blue);
 void render_tile_map(i32 *restrict image_buffer, i32 *restrict tile_map,
-        i32 x_offset,
-        i32 y_offset);
+    i32 x_offset,
+    i32 y_offset);
 
 i32 convert_tile_to_pixel_coordinate(i32 tile_value, CoordDimension dimension);
 
 void transition_screens(i32 *restrict image_buffer,
-        PlayerState *restrict player_state,
-        WorldState *restrict world_state);
+    PlayerState *restrict player_state,
+    WorldState *restrict world_state);
 
 // This is defined by platform layer.
 // We'll probably use a different solution later on.
