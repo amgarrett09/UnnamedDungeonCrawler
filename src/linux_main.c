@@ -22,7 +22,7 @@ main(int argc, char *argv[])
 {
         int exit_code = 0;
 
-        // Declarations for X11
+        /* Declarations for X11 */
         Display *display = NULL;
         Visual *visual = NULL;
         Window window = {0};
@@ -32,7 +32,7 @@ main(int argc, char *argv[])
         i32 depth = 0;
         XImage *ximage = NULL;
 
-        // Declarations for ALSA
+        /* Declarations for ALSA */
         Sound game_sound = {0};
         game_sound.sound_initialized = false;
         game_sound.sound_playing = false;
@@ -45,7 +45,7 @@ main(int argc, char *argv[])
         i32 dir = 0;
         snd_pcm_uframes_t frames = 0;
 
-        // X11 Initialization
+        /* X11 Initialization */
         display = XOpenDisplay(NULL);
         if (!display) {
                 fprintf(stderr, "Cannot open display\n");
@@ -60,9 +60,9 @@ main(int argc, char *argv[])
         visual = DefaultVisual(display, screen);
 
         window = XCreateSimpleWindow(display, RootWindow(display, screen), 
-            WIN_X, WIN_Y, WIN_WIDTH, WIN_HEIGHT, 
-            WIN_BORDER, BlackPixel(display, screen),   
-            BlackPixel(display, screen));
+                                     WIN_X, WIN_Y, WIN_WIDTH, WIN_HEIGHT, 
+                                     WIN_BORDER, BlackPixel(display, screen),   
+                                     BlackPixel(display, screen));
 
         gc = DefaultGC(display, screen);
 
@@ -70,72 +70,88 @@ main(int argc, char *argv[])
         XSetWMProtocols(display, window, &delete_window, 1);
 
         XSelectInput(display, window, 
-            ExposureMask | KeyPressMask | KeyReleaseMask);
+                     ExposureMask | KeyPressMask | KeyReleaseMask);
 
         XMapWindow(display, window);
 
         i32 video_buffer_size = WIN_WIDTH * WIN_HEIGHT * 4;
         assert(video_buffer_size % 64 == 0);
-        // This will get freed by XDestroyImage
+        /* This will get freed by XDestroyImage */
         char *image_buffer = (char *) aligned_alloc(64, video_buffer_size);
+        if (!image_buffer) {
+                fprintf(stderr, "Failed to allocate image buffer\n");
+                exit_code = 1;
+                goto cleanup;
+        }
         memset(image_buffer, 0, video_buffer_size);
 
-        // TODO: Explore using Shm for this
+        /* TODO: Explore using Shm for this */
         ximage = XCreateImage(display, visual, depth, ZPixmap, 0, image_buffer, 
-            WIN_WIDTH, WIN_HEIGHT, 32, 0);
+                              WIN_WIDTH, WIN_HEIGHT, 32, 0);
 
         XkbSetDetectableAutoRepeat(display, true, NULL);
 
 
-        // ALSA initialization
+        /* ALSA initialization */
         err = snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
         if (err < 0) {
                 fprintf(stderr, "failed to open PCM device: %s\n", 
-                           snd_strerror(err));
+                        snd_strerror(err));
         } else {
                 snd_pcm_hw_params_alloca(&params);
                 snd_pcm_hw_params_any(handle, params);
 
-                // Interleaved mode
+                /* Interleaved mode */
                 snd_pcm_hw_params_set_access(handle, params, 
-                    SND_PCM_ACCESS_RW_INTERLEAVED);
+                                             SND_PCM_ACCESS_RW_INTERLEAVED);
 
-                // Stereo PCM 16 bit little-endian
+                /* Stereo PCM 16 bit little-endian */
                 snd_pcm_hw_params_set_format(handle, params, 
-                    SND_PCM_FORMAT_S16_LE);
+                                             SND_PCM_FORMAT_S16_LE);
 
                 snd_pcm_hw_params_set_channels(handle, params, 2);
                 
                 sample_rate = 44100;
                 snd_pcm_hw_params_set_rate_near(handle, params, 
-                    &sample_rate, &dir);
+                                                &sample_rate, &dir);
 
-                // Amount of frames in 16.67 ms + a little extra for some leeway
+                /* 
+                 * Amount of frames in 16.67 ms, 
+                 * plus a little extra for some leeway 
+                 */
                 frames = 742;
 
                 snd_pcm_hw_params_set_period_size_near(handle, params, 
-                    &frames, &dir);
+                                                       &frames, &dir);
 
                 err = snd_pcm_hw_params(handle, params);
                 if (err < 0) {
                         fprintf(stderr, "failed to set hw parameters: %s\n", 
-                            snd_strerror(err));
+                                snd_strerror(err));
                 } else {
                         snd_pcm_hw_params_get_period_size(params, &frames, 
-                            &dir);
-                        // Size of buffer should be one period
-                        // with two channels and two bytes per sample
-                        game_sound.sound_buffer_size = frames * 4;
+                                                          &dir);
+                        /* 
+                         * Size of buffer should be one period 
+                         * with two channels and two bytes per sample.
+                         */
+                        game_sound.sound_buffer_size = frames * 2 * 2;
                         game_sound.sound_buffer = 
                             (char *) malloc(game_sound.sound_buffer_size);
+                        if (!game_sound.sound_buffer) {
+                                fprintf(stderr, 
+                                        "Failed to allocate sound buffer\n");
+                                exit_code = 1;
+                                goto cleanup;
+                        }
                         memset(game_sound.sound_buffer, 0, 
-                            game_sound.sound_buffer_size);
+                               game_sound.sound_buffer_size);
 
                         game_sound.sound_initialized = true;
                 }
         }
 
-        // Setup memory pool for game to use
+        /* Setup memory pool for game to use */
         i32 memory_size_bytes = 4096;
         assert(memory_size_bytes % 64 == 0);
         Memory memory;
@@ -149,10 +165,10 @@ main(int argc, char *argv[])
         memory.is_initialized = false;
         memset(memory.perm_storage, 0, memory.perm_storage_size);
 
-        // Setup input
+        /* Setup input */
         Input input = { NULLKEY, NULLKEY };
 
-        // Setup timespecs to enforce a set framerate in main loop
+        /* Setup timespecs to enforce a set framerate in main loop */
         i64 frametime = 16666667;
         struct timespec start, end, sleeptime;
         i64 delta;
@@ -162,7 +178,9 @@ main(int argc, char *argv[])
 
         game_initialize_memory(&memory, dt);
 
-        // MAIN LOOP
+        /* 
+         * MAIN LOOP 
+         */
         bool should_close_window = false;
         clock_gettime(CLOCK_REALTIME, &start);
 
@@ -184,18 +202,18 @@ main(int argc, char *argv[])
                                 }
                                 case Expose:
                                         XPutImage(display, window, gc, ximage,
-                                                0, 0, 0, 0, WIN_WIDTH, 
-                                                WIN_HEIGHT);
+                                                  0, 0, 0, 0, WIN_WIDTH, 
+                                                  WIN_HEIGHT);
                                         break;
                         }
                 }
 
                 game_update_and_render(&memory, &input, &game_sound, 
-                    (i32 *)image_buffer, dt);
+                                       (i32 *)image_buffer, dt);
 
                 if (game_sound.sound_playing && game_sound.sound_initialized) {
                         err = snd_pcm_writei(handle, game_sound.sound_buffer, 
-                            frames);
+                                             frames);
                         if (err < 0) {
                                 printf("%s\n", snd_strerror(err));
                                 snd_pcm_prepare(handle);
@@ -203,16 +221,15 @@ main(int argc, char *argv[])
                 }
 
                 XPutImage(display, window, gc, ximage, 0, 0, 0, 0, 
-                    WIN_WIDTH, WIN_HEIGHT);
+                          WIN_WIDTH, WIN_HEIGHT);
 
                 clock_gettime(CLOCK_REALTIME, &end);
 
-                // Sleep until we reach frametime
+                /* Sleep until we reach frametime */
                 delta = ((i64)end.tv_sec - (i64)start.tv_sec)
                     * (i64)1000000000 + ((i64)end.tv_nsec - (i64)start.tv_nsec);
                 sleeptime.tv_sec = 0;
                 sleeptime.tv_nsec = frametime - delta;
-                //printf("%li\n", delta);
 
                 nanosleep(&sleeptime, NULL);
                 clock_gettime(CLOCK_REALTIME, &start);
@@ -259,8 +276,8 @@ debug_platform_stream_audio(const char file_path[], Sound *game_sound)
         }
 
         size_t result = fread(game_sound->sound_buffer, 1, 
-                game_sound->sound_buffer_size, 
-                game_sound->stream);
+                              game_sound->sound_buffer_size, 
+                              game_sound->stream);
 
         if (result != game_sound->sound_buffer_size) {
                 fclose(game_sound->stream);

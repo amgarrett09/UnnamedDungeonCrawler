@@ -139,7 +139,7 @@ game_initialize_memory(Memory *memory, i32 dt)
         MemoryPartitions *partitions = 
             (MemoryPartitions *) memory->perm_storage;
 
-        /* TODO: fucntion to get next aligned address */
+        /* TODO: function to get next aligned address */
         partitions->player_state = (PlayerState *) (partitions + 1);
         partitions->world_state = (WorldState *) (partitions->player_state + 1);
 
@@ -149,9 +149,9 @@ game_initialize_memory(Memory *memory, i32 dt)
         player_state->tile_x = 15;
         player_state->tile_y = 0;
         player_state->pixel_x = 
-            convert_tile_to_pixel_coordinate(player_state->tile_x, X_DIMENSION);
+            convert_tile_to_pixel(player_state->tile_x, X_DIMENSION);
         player_state->pixel_y = 
-            convert_tile_to_pixel_coordinate(player_state->tile_y, Y_DIMENSION);
+            convert_tile_to_pixel(player_state->tile_y, Y_DIMENSION);
         player_state->move_counter = 0;
         player_state->move_direction = NULLDIR;
         player_state->speed = ((TILE_WIDTH / 10) * dt) / 16;
@@ -177,9 +177,8 @@ game_initialize_memory(Memory *memory, i32 dt)
 
 void 
 game_update_and_render(Memory *restrict memory, Input *restrict input, 
-    Sound *restrict game_sound,
-    i32 *restrict image_buffer,
-    i32 dt) 
+                       Sound *restrict game_sound, i32 *restrict image_buffer,
+                       i32 dt) 
 {
         MemoryPartitions *partitions = 
             (MemoryPartitions *) memory->perm_storage;
@@ -187,11 +186,11 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
         WorldState *world_state = partitions->world_state;
         
         if (world_state->screen_transitioning) {
-                transition_screens(image_buffer,player_state, world_state);
+                transition_screens(image_buffer, player_state, world_state);
                 return;
         }
 
-        // Read input
+        /* Read input */
         switch (input->key_pressed) {
                 case UPKEY:
                         player_state->keys = player_state->keys | UP_MASK;
@@ -226,13 +225,14 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
         }
 
 
-        // Movement Controls and Collision Checking
+        /* Movement Controls and Collision Checking */
         i32 keys = player_state->keys;
         if (player_state->move_counter <= 0) {
-                // Check for screen transition
+                /* Check for screen transition */
                 TileMap *old_tile_map = world_state->current_tile_map;
                 i32 tile_x = player_state->tile_x;
                 i32 tile_y = player_state->tile_y;
+
                 if (tile_y == -1 && old_tile_map->top_connection) {
                         world_state->screen_transitioning = true;
                         world_state->transition_counter = WIN_HEIGHT;
@@ -241,7 +241,7 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
                             old_tile_map->top_connection;
                         return;
                 } else if (tile_y == SCREEN_HEIGHT_TILES 
-                        && old_tile_map->bottom_connection) {
+                           && old_tile_map->bottom_connection) {
                         world_state->screen_transitioning = true;
                         world_state->transition_counter = WIN_HEIGHT;
                         world_state->transition_direction = DOWNDIR;
@@ -256,7 +256,7 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
                             old_tile_map->left_connection;
                         return;
                 } else if (tile_x == SCREEN_WIDTH_TILES 
-                        && old_tile_map->right_connection) {
+                           && old_tile_map->right_connection) {
                         world_state->screen_transitioning = true;
                         world_state->transition_counter = WIN_WIDTH;
                         world_state->transition_direction = RIGHTDIR;
@@ -277,14 +277,15 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
 
                         if (new_tile_y >= 0 && new_tile_y < SCREEN_HEIGHT_TILES 
                             && tile_x >= 0 
-                            &&tile_x < SCREEN_WIDTH_TILES) {
+                            && tile_x < SCREEN_WIDTH_TILES) {
                                 is_not_colliding = !current_tile_map[
                                     new_tile_y*SCREEN_WIDTH_TILES + tile_x];
                         }
 
                         if (is_not_colliding) {
                                 player_state->tile_y = new_tile_y;
-                                player_state->move_direction = is_up ? UPDIR : DOWNDIR;
+                                player_state->move_direction = 
+                                    is_up ? UPDIR : DOWNDIR;
                                 player_state->move_counter = TILE_HEIGHT;
                         }
                 } else if (keys & RIGHT_MASK || keys & LEFT_MASK) {
@@ -295,7 +296,7 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
 
                         bool is_not_colliding = true;
 
-                        if (new_tile_x >= 0 &&new_tile_x < SCREEN_WIDTH_TILES 
+                        if (new_tile_x >= 0 && new_tile_x < SCREEN_WIDTH_TILES 
                             && tile_y >= 0 
                             && tile_y < SCREEN_HEIGHT_TILES) {
                                 is_not_colliding = !current_tile_map[
@@ -311,6 +312,7 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
                 }
         }
 
+        /* If we're completing a movement command... */ 
         if (player_state->move_counter > 0) {
                 switch (player_state->move_direction) {
                         case UPDIR:
@@ -334,59 +336,57 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
 
 
         render_tile_map(image_buffer, 
-            (i32 *) world_state->current_tile_map->data, 0, 0);
+                        (i32 *) world_state->current_tile_map->data, 0, 0);
 
-        // Render player
+        /* Render player */
         i32 player_min_x = player_state->pixel_x - 16;
         i32 player_max_x = player_state->pixel_x + 17;
         i32 player_min_y = player_state->pixel_y - 16;
         i32 player_max_y = player_state->pixel_y + 17;
 
         render_rectangle(image_buffer, player_min_x, player_max_x, player_min_y, 
-            player_max_y,
-            0.0, 0.8, 0.25);
+                         player_max_y, 0.0, 0.8, 0.25);
 }
 
 void 
 transition_screens(i32 *restrict image_buffer, 
-    PlayerState *restrict player_state,
-    WorldState *restrict world_state) 
+                   PlayerState *restrict player_state,
+                   WorldState *restrict world_state) 
 {
         Direction transition_direction = world_state->transition_direction;
+
+        /* If we're done transitioning... */
         if (world_state->transition_counter <= 0) {
                 world_state->screen_transitioning = false;
                 world_state->current_tile_map = world_state->next_tile_map;
 
                 player_state->keys = 0;
 
+                /* Put player in correct spot on new map */
                 switch (transition_direction) {
                         case UPDIR:
                                 player_state->tile_y += SCREEN_HEIGHT_TILES;
                                 player_state->pixel_y = 
-                                    convert_tile_to_pixel_coordinate(
-                                        player_state->tile_y, 
-                                        Y_DIMENSION);
+                                    convert_tile_to_pixel(player_state->tile_y, 
+                                                          Y_DIMENSION);
                                 break;
                         case DOWNDIR:
                                 player_state->tile_y -= SCREEN_HEIGHT_TILES;
                                 player_state->pixel_y = 
-                                    convert_tile_to_pixel_coordinate(
-                                        player_state->tile_y, 
-                                        Y_DIMENSION);
+                                    convert_tile_to_pixel(player_state->tile_y, 
+                                                          Y_DIMENSION);
                                 break;
                         case RIGHTDIR:
                                 player_state->tile_x -= SCREEN_WIDTH_TILES;
                                 player_state->pixel_x = 
-                                    convert_tile_to_pixel_coordinate(
-                                        player_state->tile_x, 
-                                        X_DIMENSION);
+                                    convert_tile_to_pixel(player_state->tile_x, 
+                                                          X_DIMENSION);
                                 break;
                         case LEFTDIR:
                                 player_state->tile_x += SCREEN_WIDTH_TILES;
                                 player_state->pixel_x = 
-                                    convert_tile_to_pixel_coordinate(
-                                        player_state->tile_x, 
-                                        X_DIMENSION);
+                                    convert_tile_to_pixel(player_state->tile_x, 
+                                                          X_DIMENSION);
                                 break;
                         default:
                                 break;
@@ -400,8 +400,11 @@ transition_screens(i32 *restrict image_buffer,
                 world_state->transition_counter -= 20;
         }
 
-        // Old tile map moves off one side of screen, new tile map comes in
-        // from other side
+        /* 
+         * Old tile map moves off one side of screen, new tile map comes in
+         * from other side. Counter ticks down each frame. Map offsets are
+         * based on counter.
+         */
         i32 old_map_y_offset = 0;
         i32 old_map_x_offset = 0;
         i32 new_map_y_offset = 0;
@@ -431,14 +434,12 @@ transition_screens(i32 *restrict image_buffer,
                         break;
         }
 
-        // TODO: Refactor this so that it doesn't require two tile map draws?
+        /* TODO: Refactor this so that it doesn't require two tile map draws? */
         render_tile_map(image_buffer, (i32 *) world_state->next_tile_map->data,
-            new_map_x_offset,
-            new_map_y_offset);
+                        new_map_x_offset, new_map_y_offset);
 
         render_tile_map(image_buffer, (i32 *) world_state->current_tile_map->data,
-            old_map_x_offset,
-            old_map_y_offset);
+                        old_map_x_offset, old_map_y_offset);
 }
 
 void 
@@ -449,9 +450,7 @@ clear_image_buffer(i32 *image_buffer)
 
 void 
 render_rectangle(i32 *image_buffer, i32 min_x, i32 max_x, i32 min_y, i32 max_y,
-    float red,
-    float green,
-    float blue) 
+                 float red, float green, float blue) 
 {
         i32 clamped_min_x = min_x >= 0 ? min_x : 0;
         i32 clamped_min_y = min_y >= 0 ? min_y : 0;
@@ -464,20 +463,16 @@ render_rectangle(i32 *image_buffer, i32 min_x, i32 max_x, i32 min_y, i32 max_y,
 
         i32 color = (int_red << 16) | (int_green << 8) | int_blue;
 
-        i32 row_start = WIN_WIDTH * clamped_min_y;
         for (int y = clamped_min_y; y < clamped_max_y; y++) {
                 for (int x = clamped_min_x; x < clamped_max_x; x++) {
-                        image_buffer[row_start + x] = color;
+                        image_buffer[y*WIN_WIDTH + x] = color;
                 }
-
-                row_start += WIN_WIDTH;
         }
 };
 
 void 
 render_tile_map(i32 *restrict image_buffer, i32 *restrict tile_map,
-    i32 x_offset,
-    i32 y_offset) 
+                i32 x_offset, i32 y_offset) 
 {
         for (int row = 0; row < SCREEN_HEIGHT_TILES; row++) {
                 for (int column = 0; column < SCREEN_WIDTH_TILES; column++) {
@@ -499,7 +494,7 @@ render_tile_map(i32 *restrict image_buffer, i32 *restrict tile_map,
 }
 
 i32 
-convert_tile_to_pixel_coordinate(i32 tile_value, CoordDimension dimension) 
+convert_tile_to_pixel(i32 tile_value, CoordDimension dimension) 
 {
         if (dimension == Y_DIMENSION) {
                 return TILE_HEIGHT * tile_value + (TILE_HEIGHT / 2);
