@@ -339,14 +339,7 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
         render_tile_map(image_buffer, 
                         (i32 *) world_state->current_tile_map->data, 0, 0);
 
-        /* Render player */
-        i32 player_min_x = player_state->pixel_x - 16;
-        i32 player_max_x = player_state->pixel_x + 17;
-        i32 player_min_y = player_state->pixel_y - 16;
-        i32 player_max_y = player_state->pixel_y + 17;
-
-        render_rectangle(image_buffer, player_min_x, player_max_x, player_min_y, 
-                         player_max_y, 0.0, 0.8, 0.25);
+        render_player(image_buffer, player_state);
 }
 
 void 
@@ -355,6 +348,9 @@ transition_screens(i32 *restrict image_buffer,
                    WorldState *restrict world_state) 
 {
         Direction transition_direction = world_state->transition_direction;
+
+        i32 transition_speed_y = 16;
+        i32 transition_speed_x = 20;
 
         /* If we're done transitioning... */
         if (world_state->transition_counter <= 0) {
@@ -396,9 +392,9 @@ transition_screens(i32 *restrict image_buffer,
         }
 
         if (transition_direction == UPDIR || transition_direction == DOWNDIR) {
-                world_state->transition_counter -= 16;
+                world_state->transition_counter -= transition_speed_y;
         } else {
-                world_state->transition_counter -= 20;
+                world_state->transition_counter -= transition_speed_x;
         }
 
         /* 
@@ -415,21 +411,25 @@ transition_screens(i32 *restrict image_buffer,
                         old_map_y_offset = 
                             WIN_HEIGHT - world_state->transition_counter;
                         new_map_y_offset = old_map_y_offset - WIN_HEIGHT;
+                        player_state->pixel_y += transition_speed_y; 
                         break;
                 case DOWNDIR:
                         old_map_y_offset = 
                             world_state->transition_counter - WIN_HEIGHT;
                         new_map_y_offset = WIN_HEIGHT + old_map_y_offset;
+                        player_state->pixel_y -= transition_speed_y; 
                         break;
                 case RIGHTDIR:
                         old_map_x_offset = 
                             world_state->transition_counter - WIN_WIDTH;
                         new_map_x_offset = WIN_WIDTH + old_map_x_offset;
+                        player_state->pixel_x -= transition_speed_x; 
                         break;
                 case LEFTDIR:
                         old_map_x_offset = 
                             WIN_WIDTH - world_state->transition_counter;
                         new_map_x_offset = old_map_x_offset - WIN_WIDTH;
+                        player_state->pixel_x += transition_speed_x; 
                         break;
                 default:
                         break;
@@ -441,6 +441,8 @@ transition_screens(i32 *restrict image_buffer,
 
         render_tile_map(image_buffer, (i32 *) world_state->current_tile_map->data,
                         old_map_x_offset, old_map_y_offset);
+
+        render_player(image_buffer, player_state);
 }
 
 void 
@@ -494,6 +496,19 @@ render_tile_map(i32 *restrict image_buffer, i32 *restrict tile_map,
         }
 }
 
+void
+render_player(i32 *restrict image_buffer, PlayerState *restrict player_state) 
+{
+        i32 player_min_x = player_state->pixel_x - 16;
+        i32 player_max_x = player_state->pixel_x + 17;
+        i32 player_min_y = player_state->pixel_y - 16;
+        i32 player_max_y = player_state->pixel_y + 17;
+
+        render_rectangle(image_buffer, player_min_x, player_max_x, player_min_y, 
+                         player_max_y, 0.0, 0.8, 0.25);
+
+}
+
 i32 
 convert_tile_to_pixel(i32 tile_value, CoordDimension dimension) 
 {
@@ -503,3 +518,4 @@ convert_tile_to_pixel(i32 tile_value, CoordDimension dimension)
                 return TILE_WIDTH * tile_value + (TILE_WIDTH / 2);
         }
 }
+

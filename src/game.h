@@ -103,6 +103,8 @@ void render_rectangle(i32 *image_buffer, i32 min_x, i32 min_y, i32 max_x,
 
 void render_tile_map(i32 *restrict image_buffer, i32 *restrict tile_map,
                      i32 x_offset,i32 y_offset);
+void render_player(i32 *restrict image_buffer, 
+                   PlayerState *restrict player_state);
 
 i32 convert_tile_to_pixel(i32 tile_value, CoordDimension dimension);
 
