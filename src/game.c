@@ -225,7 +225,7 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
         }
 
 
-        /* Movement Controls and Collision Checking */
+        /* If we're at the end of a move... */
         i32 keys = player_state->keys;
         if (player_state->move_counter <= 0) {
                 /* Check for screen transition */
@@ -265,6 +265,7 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
                         return;
                 }
 
+                /* Collision detection */
                 i32 *current_tile_map = 
                     (i32 *) world_state->current_tile_map->data;
                 if (keys & UP_MASK || keys & DOWN_MASK) {
@@ -484,11 +485,11 @@ render_tile_map(i32 *restrict image_buffer, i32 *restrict tile_map,
                         float blue = tile_value == 1 ? 1.0f : 0.25f;
 
                         render_rectangle(image_buffer, 
-                            column * TILE_WIDTH + x_offset,
-                            (column + 1) * TILE_WIDTH + x_offset,
-                            row * TILE_HEIGHT + y_offset,
-                            (row + 1) * TILE_HEIGHT + y_offset,
-                            red, green, blue);
+                                         column * TILE_WIDTH + x_offset,
+                                         (column + 1) * TILE_WIDTH + x_offset,
+                                         row * TILE_HEIGHT + y_offset,
+                                         (row + 1) * TILE_HEIGHT + y_offset,
+                                         red, green, blue);
                 }
         }
 }
