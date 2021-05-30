@@ -133,6 +133,63 @@ static TileMap tile_map5 = {
     NULL
 };
 
+/*
+ * Finds first set bit in an unsigned integer, starting from lowest bit.
+ * Returns the index of the set bit.
+ */
+i32 
+bit_scan_forward_u(u32 number) 
+{
+        /* TODO: Use intrinsic for this */
+        bool found = false;
+        i32 index = 0;
+
+        while (!found) {
+                if (index > 31) {
+                        index = -1;
+                        break;
+                } else if (number & (1 << index)) {
+                        found = true;
+                } else {
+                        index++;
+                }
+        }
+
+        return index;
+}
+
+i32 
+convert_tile_to_pixel(i32 tile_value, CoordDimension dimension) 
+{
+        if (dimension == Y_DIMENSION) {
+                return TILE_HEIGHT * tile_value + (TILE_HEIGHT / 2);
+        } else {
+                return TILE_WIDTH * tile_value + (TILE_WIDTH / 2);
+        }
+}
+
+void
+display_bitmap(i32 *restrict image_buffer, BMPHeader *bmp) 
+{
+        u32 image_offset = bmp->image_offset;
+        i32 image_width = bmp->image_width;
+        i32 image_height = bmp->image_height;
+
+        char *image_start = ((char *) bmp) + image_offset;
+        i32 *restrict image = (i32 *) image_start;
+
+        i32 bmp_row_start = (image_height - 1) * image_width;
+
+        for (i32 row = 0; row < image_height; row++) {
+                for (i32 column = 0; column < image_width; column++) {
+                        image_buffer[row*WIN_WIDTH + column] = 
+                            image[bmp_row_start + column];
+                }
+
+                bmp_row_start -= image_width;
+        }
+}
+
 void 
 game_initialize_memory(Memory *memory, i32 dt) 
 {
@@ -348,6 +405,114 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
 
 }
 
+i32 
+load_bitmap(const char file_path[], void *location) 
+{
+        i32 result = debug_platform_load_asset(file_path, location);
+
+        if (result < 0) {
+                return -1;
+        }
+
+        BMPHeader *bmp = (BMPHeader *) location;
+
+        u32 image_offset = bmp->image_offset;
+        i32 image_width = bmp->image_width;
+        i32 image_height = bmp->image_height;
+
+        u32 red_mask = bmp->red_mask;
+        u32 green_mask = bmp->green_mask;
+        u32 blue_mask = bmp->blue_mask;
+        u32 alpha_mask = bmp->alpha_mask;
+
+        /* How many bits we need to shift to get values to start at bit 0*/
+        i32 red_shift = bit_scan_forward_u(red_mask);
+        i32 green_shift = bit_scan_forward_u(green_mask);
+        i32 blue_shift = bit_scan_forward_u(blue_mask);
+        i32 alpha_shift = bit_scan_forward_u(alpha_mask);
+
+        red_shift = red_shift < 0 ? 0 : red_shift;
+        green_shift = green_shift < 0 ? 0 : green_shift;
+        blue_shift = blue_shift < 0 ? 0 : blue_shift;
+        alpha_shift = alpha_shift < 0 ? 0 : alpha_shift;
+
+        char *image_start = ((char *) bmp) + image_offset;
+        i32 *image = (i32 *) image_start;
+
+        for (i32 i = 0; i < image_width*image_height; i++) {
+                i32 color = image[i]; 
+
+                /* Swizzle color values to ensure ARGB order */
+                i32 alpha = 
+                    (((color & alpha_mask) >> alpha_shift) & 0xFF) << 24;
+                i32 red = (((color & red_mask) >> red_shift) & 0xFF) << 16;
+                i32 green = (((color & green_mask) >> green_shift) & 0xFF) << 8;
+                i32 blue = (((color & blue_mask) >> blue_shift) & 0xFF);
+
+                image[i] = alpha | red | green | blue;
+        }
+
+        return 0;
+}
+
+void
+render_player(i32 *restrict image_buffer, PlayerState *restrict player_state) 
+{
+        i32 player_min_x = player_state->pixel_x - 16;
+        i32 player_max_x = player_state->pixel_x + 17;
+        i32 player_min_y = player_state->pixel_y - 16;
+        i32 player_max_y = player_state->pixel_y + 17;
+
+        render_rectangle(image_buffer, player_min_x, player_max_x, player_min_y, 
+                         player_max_y, 0.0, 0.8, 0.25);
+
+}
+
+void 
+render_rectangle(i32 *image_buffer, i32 min_x, i32 max_x, i32 min_y, i32 max_y,
+                 float red, float green, float blue) 
+{
+        i32 clamped_min_x = min_x >= 0 ? min_x : 0;
+        i32 clamped_min_y = min_y >= 0 ? min_y : 0;
+        i32 clamped_max_x = max_x > WIN_WIDTH ? WIN_WIDTH : max_x;
+        i32 clamped_max_y = max_y > WIN_HEIGHT ? WIN_HEIGHT : max_y;
+
+        i32 int_red = (i32) (red * 255.0f);
+        i32 int_green = (i32) (green * 255.0f);
+        i32 int_blue = (i32) (blue * 255.0f);
+
+        i32 color = (int_red << 16) | (int_green << 8) | int_blue;
+
+        for (int y = clamped_min_y; y < clamped_max_y; y++) {
+                for (int x = clamped_min_x; x < clamped_max_x; x++) {
+                        image_buffer[y*WIN_WIDTH + x] = color;
+                }
+        }
+};
+
+void 
+render_tile_map(i32 *restrict image_buffer, i32 *restrict tile_map,
+                i32 x_offset, i32 y_offset) 
+{
+        for (int row = 0; row < SCREEN_HEIGHT_TILES; row++) {
+                for (int column = 0; column < SCREEN_WIDTH_TILES; column++) {
+                        i32 tile_value = 
+                            tile_map[row*SCREEN_WIDTH_TILES + column];
+
+                        float red = tile_value == 1 ? 1.0f : 0.25f;
+                        float green = tile_value == 1 ? 1.0f : 0.25f;
+                        float blue = tile_value == 1 ? 1.0f : 0.25f;
+
+                        render_rectangle(image_buffer, 
+                                         column * TILE_WIDTH + x_offset,
+                                         (column + 1) * TILE_WIDTH + x_offset,
+                                         row * TILE_HEIGHT + y_offset,
+                                         (row + 1) * TILE_HEIGHT + y_offset,
+                                         red, green, blue);
+                }
+        }
+}
+
 void 
 transition_screens(i32 *restrict image_buffer, 
                    PlayerState *restrict player_state,
@@ -451,167 +616,3 @@ transition_screens(i32 *restrict image_buffer,
         render_player(image_buffer, player_state);
 }
 
-void 
-render_rectangle(i32 *image_buffer, i32 min_x, i32 max_x, i32 min_y, i32 max_y,
-                 float red, float green, float blue) 
-{
-        i32 clamped_min_x = min_x >= 0 ? min_x : 0;
-        i32 clamped_min_y = min_y >= 0 ? min_y : 0;
-        i32 clamped_max_x = max_x > WIN_WIDTH ? WIN_WIDTH : max_x;
-        i32 clamped_max_y = max_y > WIN_HEIGHT ? WIN_HEIGHT : max_y;
-
-        i32 int_red = (i32) (red * 255.0f);
-        i32 int_green = (i32) (green * 255.0f);
-        i32 int_blue = (i32) (blue * 255.0f);
-
-        i32 color = (int_red << 16) | (int_green << 8) | int_blue;
-
-        for (int y = clamped_min_y; y < clamped_max_y; y++) {
-                for (int x = clamped_min_x; x < clamped_max_x; x++) {
-                        image_buffer[y*WIN_WIDTH + x] = color;
-                }
-        }
-};
-
-void 
-render_tile_map(i32 *restrict image_buffer, i32 *restrict tile_map,
-                i32 x_offset, i32 y_offset) 
-{
-        for (int row = 0; row < SCREEN_HEIGHT_TILES; row++) {
-                for (int column = 0; column < SCREEN_WIDTH_TILES; column++) {
-                        i32 tile_value = 
-                            tile_map[row*SCREEN_WIDTH_TILES + column];
-
-                        float red = tile_value == 1 ? 1.0f : 0.25f;
-                        float green = tile_value == 1 ? 1.0f : 0.25f;
-                        float blue = tile_value == 1 ? 1.0f : 0.25f;
-
-                        render_rectangle(image_buffer, 
-                                         column * TILE_WIDTH + x_offset,
-                                         (column + 1) * TILE_WIDTH + x_offset,
-                                         row * TILE_HEIGHT + y_offset,
-                                         (row + 1) * TILE_HEIGHT + y_offset,
-                                         red, green, blue);
-                }
-        }
-}
-
-void
-render_player(i32 *restrict image_buffer, PlayerState *restrict player_state) 
-{
-        i32 player_min_x = player_state->pixel_x - 16;
-        i32 player_max_x = player_state->pixel_x + 17;
-        i32 player_min_y = player_state->pixel_y - 16;
-        i32 player_max_y = player_state->pixel_y + 17;
-
-        render_rectangle(image_buffer, player_min_x, player_max_x, player_min_y, 
-                         player_max_y, 0.0, 0.8, 0.25);
-
-}
-
-i32 
-convert_tile_to_pixel(i32 tile_value, CoordDimension dimension) 
-{
-        if (dimension == Y_DIMENSION) {
-                return TILE_HEIGHT * tile_value + (TILE_HEIGHT / 2);
-        } else {
-                return TILE_WIDTH * tile_value + (TILE_WIDTH / 2);
-        }
-}
-
-/*
- * Finds first set bit in an unsigned integer, starting from lowest bit.
- * Returns the index of the set bit.
- */
-i32 
-bit_scan_forward_u(u32 number) 
-{
-        /* TODO: Use intrinsic for this */
-        bool found = false;
-        i32 index = 0;
-
-        while (!found) {
-                if (index > 31) {
-                        index = -1;
-                        break;
-                } else if (number & (1 << index)) {
-                        found = true;
-                } else {
-                        index++;
-                }
-        }
-
-        return index;
-}
-
-i32 
-load_bitmap(const char file_path[], void *location) 
-{
-        i32 result = debug_platform_load_asset(file_path, location);
-
-        if (result < 0) {
-                return -1;
-        }
-
-        BMPHeader *bmp = (BMPHeader *) location;
-
-        u32 image_offset = bmp->image_offset;
-        i32 image_width = bmp->image_width;
-        i32 image_height = bmp->image_height;
-
-        u32 red_mask = bmp->red_mask;
-        u32 green_mask = bmp->green_mask;
-        u32 blue_mask = bmp->blue_mask;
-        u32 alpha_mask = bmp->alpha_mask;
-
-        /* How many bits we need to shift to get values to start at bit 0*/
-        i32 red_shift = bit_scan_forward_u(red_mask);
-        i32 green_shift = bit_scan_forward_u(green_mask);
-        i32 blue_shift = bit_scan_forward_u(blue_mask);
-        i32 alpha_shift = bit_scan_forward_u(alpha_mask);
-
-        red_shift = red_shift < 0 ? 0 : red_shift;
-        green_shift = green_shift < 0 ? 0 : green_shift;
-        blue_shift = blue_shift < 0 ? 0 : blue_shift;
-        alpha_shift = alpha_shift < 0 ? 0 : alpha_shift;
-
-        char *image_start = ((char *) bmp) + image_offset;
-        i32 *image = (i32 *) image_start;
-
-        for (i32 i = 0; i < image_width*image_height; i++) {
-                i32 color = image[i]; 
-
-                /* Swizzle color values to ensure ARGB order */
-                i32 alpha = 
-                    (((color & alpha_mask) >> alpha_shift) & 0xFF) << 24;
-                i32 red = (((color & red_mask) >> red_shift) & 0xFF) << 16;
-                i32 green = (((color & green_mask) >> green_shift) & 0xFF) << 8;
-                i32 blue = (((color & blue_mask) >> blue_shift) & 0xFF);
-
-                image[i] = alpha | red | green | blue;
-        }
-
-        return 0;
-}
-
-void
-display_bitmap(i32 *restrict image_buffer, BMPHeader *bmp) 
-{
-        u32 image_offset = bmp->image_offset;
-        i32 image_width = bmp->image_width;
-        i32 image_height = bmp->image_height;
-
-        char *image_start = ((char *) bmp) + image_offset;
-        i32 *restrict image = (i32 *) image_start;
-
-        i32 bmp_row_start = (image_height - 1) * image_width;
-
-        for (i32 row = 0; row < image_height; row++) {
-                for (i32 column = 0; column < image_width; column++) {
-                        image_buffer[row*WIN_WIDTH + column] = 
-                            image[bmp_row_start + column];
-                }
-
-                bmp_row_start -= image_width;
-        }
-}

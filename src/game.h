@@ -23,13 +23,35 @@ typedef uint64_t u64;
 #define LEFT_MASK 0x04
 #define RIGHT_MASK 0x08
 
+#pragma pack(push, 1)
+typedef struct {
+        u16 signature;
+        u32 file_size;
+        u16 reserved1;
+        u16 reserved2;
+        u32 image_offset;
+        u32 info_header_size;
+        i32 image_width;
+        i32 image_height;
+        u16 number_of_planes;
+        u16 bits_per_pixel;
+        u32 compression_type;
+        u32 image_data_size;
+        i32 horizontal_resolution;
+        i32 vertical_resolution;
+        u32 colors_used;
+        u32 important_colors;
+        u32 red_mask;
+        u32 green_mask;
+        u32 blue_mask;
+        u32 alpha_mask;
+} BMPHeader;
+#pragma pack(pop)
+
 typedef enum {
-        NULLKEY,
-        UPKEY,
-        RIGHTKEY,
-        DOWNKEY,
-        LEFTKEY
-} Key;
+        X_DIMENSION,
+        Y_DIMENSION
+} CoordDimension;
 
 typedef enum {
         NULLDIR,
@@ -39,10 +61,19 @@ typedef enum {
         LEFTDIR
 } Direction;
 
+
 typedef enum {
-        X_DIMENSION,
-        Y_DIMENSION
-} CoordDimension;
+        NULLKEY,
+        UPKEY,
+        RIGHTKEY,
+        DOWNKEY,
+        LEFTKEY
+} Key;
+
+typedef struct {
+        Key key_pressed;         
+        Key key_released;
+} Input;
 
 typedef struct {
         i32 keys;
@@ -72,14 +103,6 @@ typedef struct {
 } WorldState;
 
 typedef struct {
-        char *sound_buffer;
-        FILE *stream;
-        int sound_buffer_size;
-        bool sound_initialized;
-        bool sound_playing;
-} Sound;
-
-typedef struct {
         void *perm_storage;
         size_t perm_storage_size;
         void *temp_storage;
@@ -94,53 +117,32 @@ typedef struct {
 } MemoryPartitions;
 
 typedef struct {
-        Key key_pressed;         
-        Key key_released;
-} Input;
-
-#pragma pack(push, 1)
-typedef struct {
-        u16 signature;
-        u32 file_size;
-        u16 reserved1;
-        u16 reserved2;
-        u32 image_offset;
-        u32 info_header_size;
-        i32 image_width;
-        i32 image_height;
-        u16 number_of_planes;
-        u16 bits_per_pixel;
-        u32 compression_type;
-        u32 image_data_size;
-        i32 horizontal_resolution;
-        i32 vertical_resolution;
-        u32 colors_used;
-        u32 important_colors;
-        u32 red_mask;
-        u32 green_mask;
-        u32 blue_mask;
-        u32 alpha_mask;
-} BMPHeader;
-#pragma pack(pop)
+        char *sound_buffer;
+        FILE *stream;
+        int sound_buffer_size;
+        bool sound_initialized;
+        bool sound_playing;
+} Sound;
 
 
-void render_rectangle(i32 *image_buffer, i32 min_x, i32 min_y, i32 max_x,
-                      i32 max_y, float red, float green, float blue);
-
-void render_tile_map(i32 *restrict image_buffer, i32 *restrict tile_map,
-                     i32 x_offset,i32 y_offset);
+i32 bit_scan_forward_u(u32 number);
+i32 convert_tile_to_pixel(i32 tile_value, CoordDimension dimension);
+void display_bitmap(i32 *restrict image_buffer, BMPHeader *bmp);
+void game_initialize_memory(Memory *memory, i32 dt);
+void game_update_and_render(Memory *restrict memory, Input *restrict input, 
+                       Sound *restrict game_sound, i32 *restrict image_buffer,
+                       i32 dt);
+i32 load_bitmap(const char file_path[], void *location);
 void render_player(i32 *restrict image_buffer, 
                    PlayerState *restrict player_state);
-void display_bitmap(i32 *restrict image_buffer, BMPHeader *bmp);
-
-i32 convert_tile_to_pixel(i32 tile_value, CoordDimension dimension);
-
+void render_rectangle(i32 *image_buffer, i32 min_x, i32 min_y, i32 max_x,
+                      i32 max_y, float red, float green, float blue);
+void render_tile_map(i32 *restrict image_buffer, i32 *restrict tile_map,
+                     i32 x_offset,i32 y_offset);
 void transition_screens(i32 *restrict image_buffer,
                         PlayerState *restrict player_state,
                         WorldState *restrict world_state);
 
-i32 bit_scan_forward_u(u32 number);
-i32 load_bitmap(const char file_path[], void *location);
 
 /* 
  * These are defined by platform layer.
