@@ -82,6 +82,8 @@ typedef struct {
 typedef struct {
         void *perm_storage;
         size_t perm_storage_size;
+        void *temp_storage;
+        size_t temp_storage_size;
         bool is_initialized;
 } Memory;
 
@@ -96,8 +98,32 @@ typedef struct {
         Key key_released;
 } Input;
 
+#pragma pack(push, 1)
+typedef struct {
+        u16 signature;
+        u32 file_size;
+        u16 reserved1;
+        u16 reserved2;
+        u32 image_offset;
+        u32 info_header_size;
+        i32 image_width;
+        i32 image_height;
+        u16 number_of_planes;
+        u16 bits_per_pixel;
+        u32 compression_type;
+        u32 image_data_size;
+        i32 horizontal_resolution;
+        i32 vertical_resolution;
+        u32 colors_used;
+        u32 important_colors;
+        u32 red_mask;
+        u32 green_mask;
+        u32 blue_mask;
+        u32 alpha_mask;
+} BMPHeader;
+#pragma pack(pop)
 
-void clear_image_buffer(i32 *image_buffer);
+
 void render_rectangle(i32 *image_buffer, i32 min_x, i32 min_y, i32 max_x,
                       i32 max_y, float red, float green, float blue);
 
@@ -105,6 +131,7 @@ void render_tile_map(i32 *restrict image_buffer, i32 *restrict tile_map,
                      i32 x_offset,i32 y_offset);
 void render_player(i32 *restrict image_buffer, 
                    PlayerState *restrict player_state);
+void display_bitmap(i32 *restrict image_buffer, BMPHeader *bmp);
 
 i32 convert_tile_to_pixel(i32 tile_value, CoordDimension dimension);
 
@@ -112,9 +139,14 @@ void transition_screens(i32 *restrict image_buffer,
                         PlayerState *restrict player_state,
                         WorldState *restrict world_state);
 
+i32 bit_scan_forward_u(u32 number);
+i32 load_bitmap(const char file_path[], void *location);
+
 /* 
- * This is defined by platform layer.
+ * These are defined by platform layer.
  * We'll probably use a different solution later on. 
  */
 i32 debug_platform_stream_audio(const char file_path[], Sound *game_sound);
+
+i32 debug_platform_load_asset(const char file_path[], void *memory_location);
 

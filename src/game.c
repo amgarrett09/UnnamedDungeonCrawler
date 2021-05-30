@@ -138,6 +138,8 @@ game_initialize_memory(Memory *memory, i32 dt)
 {
         MemoryPartitions *partitions = 
             (MemoryPartitions *) memory->perm_storage;
+               
+        load_bitmap("resources/test3.bmp", memory->temp_storage);
 
         /* TODO: function to get next aligned address */
         partitions->player_state = (PlayerState *) (partitions + 1);
@@ -336,10 +338,14 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
         }
 
 
+        /* Render */
         render_tile_map(image_buffer, 
                         (i32 *) world_state->current_tile_map->data, 0, 0);
 
         render_player(image_buffer, player_state);
+
+        display_bitmap(image_buffer, memory->temp_storage);
+
 }
 
 void 
@@ -446,12 +452,6 @@ transition_screens(i32 *restrict image_buffer,
 }
 
 void 
-clear_image_buffer(i32 *image_buffer) 
-{
-        memset(image_buffer, 0, WIN_WIDTH * WIN_HEIGHT * 4);
-}
-
-void 
 render_rectangle(i32 *image_buffer, i32 min_x, i32 max_x, i32 min_y, i32 max_y,
                  float red, float green, float blue) 
 {
@@ -519,3 +519,99 @@ convert_tile_to_pixel(i32 tile_value, CoordDimension dimension)
         }
 }
 
+/*
+ * Finds first set bit in an unsigned integer, starting from lowest bit.
+ * Returns the index of the set bit.
+ */
+i32 
+bit_scan_forward_u(u32 number) 
+{
+        /* TODO: Use intrinsic for this */
+        bool found = false;
+        i32 index = 0;
+
+        while (!found) {
+                if (index > 31) {
+                        index = -1;
+                        break;
+                } else if (number & (1 << index)) {
+                        found = true;
+                } else {
+                        index++;
+                }
+        }
+
+        return index;
+}
+
+i32 
+load_bitmap(const char file_path[], void *location) 
+{
+        i32 result = debug_platform_load_asset(file_path, location);
+
+        if (result < 0) {
+                return -1;
+        }
+
+        BMPHeader *bmp = (BMPHeader *) location;
+
+        u32 image_offset = bmp->image_offset;
+        i32 image_width = bmp->image_width;
+        i32 image_height = bmp->image_height;
+
+        u32 red_mask = bmp->red_mask;
+        u32 green_mask = bmp->green_mask;
+        u32 blue_mask = bmp->blue_mask;
+        u32 alpha_mask = bmp->alpha_mask;
+
+        /* How many bits we need to shift to get values to start at bit 0*/
+        i32 red_shift = bit_scan_forward_u(red_mask);
+        i32 green_shift = bit_scan_forward_u(green_mask);
+        i32 blue_shift = bit_scan_forward_u(blue_mask);
+        i32 alpha_shift = bit_scan_forward_u(alpha_mask);
+
+        red_shift = red_shift < 0 ? 0 : red_shift;
+        green_shift = green_shift < 0 ? 0 : green_shift;
+        blue_shift = blue_shift < 0 ? 0 : blue_shift;
+        alpha_shift = alpha_shift < 0 ? 0 : alpha_shift;
+
+        char *image_start = ((char *) bmp) + image_offset;
+        i32 *image = (i32 *) image_start;
+
+        for (i32 i = 0; i < image_width*image_height; i++) {
+                i32 color = image[i]; 
+
+                /* Swizzle color values to ensure ARGB order */
+                i32 alpha = 
+                    (((color & alpha_mask) >> alpha_shift) & 0xFF) << 24;
+                i32 red = (((color & red_mask) >> red_shift) & 0xFF) << 16;
+                i32 green = (((color & green_mask) >> green_shift) & 0xFF) << 8;
+                i32 blue = (((color & blue_mask) >> blue_shift) & 0xFF);
+
+                image[i] = alpha | red | green | blue;
+        }
+
+        return 0;
+}
+
+void
+display_bitmap(i32 *restrict image_buffer, BMPHeader *bmp) 
+{
+        u32 image_offset = bmp->image_offset;
+        i32 image_width = bmp->image_width;
+        i32 image_height = bmp->image_height;
+
+        char *image_start = ((char *) bmp) + image_offset;
+        i32 *restrict image = (i32 *) image_start;
+
+        i32 bmp_row_start = (image_height - 1) * image_width;
+
+        for (i32 row = 0; row < image_height; row++) {
+                for (i32 column = 0; column < image_width; column++) {
+                        image_buffer[row*WIN_WIDTH + column] = 
+                            image[bmp_row_start + column];
+                }
+
+                bmp_row_start -= image_width;
+        }
+}

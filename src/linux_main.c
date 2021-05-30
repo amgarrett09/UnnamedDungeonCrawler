@@ -151,19 +151,33 @@ main(int argc, char *argv[])
                 }
         }
 
-        /* Setup memory pool for game to use */
-        i32 memory_size_bytes = 4096;
-        assert(memory_size_bytes % 64 == 0);
+        /* Setup memory pools for game to use */
         Memory memory;
-        memory.perm_storage = aligned_alloc(64, memory_size_bytes);
+
+        i32 perm_storage_size_bytes = 4*1024;
+        assert(perm_storage_size_bytes  % 64 == 0);
+        memory.perm_storage = aligned_alloc(64, perm_storage_size_bytes);
         if (!memory.perm_storage) {
-                fprintf(stderr, "Failed to allocate memory for game\n");
+                fprintf(stderr, "Failed to perm storage for game\n");
                 exit_code = 1;
                 goto cleanup;
         }
-        memory.perm_storage_size = memory_size_bytes;
-        memory.is_initialized = false;
+        memory.perm_storage_size = perm_storage_size_bytes;
         memset(memory.perm_storage, 0, memory.perm_storage_size);
+
+
+        i32 temp_storage_size_bytes = 40*1024*1024;
+        assert(temp_storage_size_bytes  % 64 == 0);
+        memory.temp_storage = aligned_alloc(64, temp_storage_size_bytes);
+        if (!memory.temp_storage) {
+                fprintf(stderr, "Failed to temp storage for game\n");
+                exit_code = 1;
+                goto cleanup;
+        }
+        memory.temp_storage_size = temp_storage_size_bytes;
+        memset(memory.temp_storage, 0, memory.temp_storage_size);
+
+        memory.is_initialized = false;
 
         /* Setup input */
         Input input = { NULLKEY, NULLKEY };
@@ -173,6 +187,7 @@ main(int argc, char *argv[])
         struct timespec start, end, sleeptime;
         i64 delta;
 
+        /* Approx. target time in ms between frames, used for calculations */
         i32 dt = 16;
 
 
@@ -261,6 +276,10 @@ cleanup:
             free(memory.perm_storage);
         }
 
+        if (memory.temp_storage) {
+            free(memory.temp_storage);
+        }
+
         return exit_code;
 }
 
@@ -286,6 +305,33 @@ debug_platform_stream_audio(const char file_path[], Sound *game_sound)
         }
         
         return (i32) result;
+}
+
+i32 
+debug_platform_load_asset(const char file_path[], void *memory_location) 
+{
+        FILE *file = fopen(file_path, "rb");
+
+        if (file == NULL) {
+                fprintf(stderr, "Failed to open asset.\n");
+                return -1;
+        }
+
+        fseek(file, 0, SEEK_END);
+        u64 file_size = ftell(file);
+        rewind(file);
+
+        size_t result = fread(memory_location, 1, file_size, file);
+
+        if (result != file_size) {
+                fclose(file);
+                fprintf(stderr, "Error reading asset\n");
+                return -1;
+        }
+
+        fclose(file);
+
+        return 0;
 }
 
 void
