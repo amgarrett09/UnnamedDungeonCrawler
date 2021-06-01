@@ -182,8 +182,32 @@ display_bitmap(i32 *restrict image_buffer, BMPHeader *bmp)
 
         for (i32 row = 0; row < image_height; row++) {
                 for (i32 column = 0; column < image_width; column++) {
+                        i32 bmp_color  = image[bmp_row_start + column];
+                        i32 buffer_color = image_buffer[row*WIN_WIDTH + column];
+
+                        /* Linear Alpha Blend bmp with existing data in buffer*/
+                        i32 alpha = (bmp_color & 0xff000000) >> 24;
+                        float t = alpha / 255.0f;
+
+                        i32 bmp_red = (bmp_color & 0x00ff0000) >> 16;
+                        i32 bmp_green = (bmp_color & 0x0000ff00) >> 8;
+                        i32 bmp_blue = (bmp_color & 0x000000ff);
+
+                        i32 buffer_red = (buffer_color & 0x00ff0000) >> 16;
+                        i32 buffer_green = (buffer_color & 0x0000ff00) >> 8;
+                        i32 buffer_blue = (buffer_color & 0x000000ff);
+
+                        float new_red = ((1 - t)*buffer_red) + (t*bmp_red);
+                        float new_green = ((1 - t)*buffer_green) + (t*bmp_green);
+                        float new_blue = ((1 - t)*buffer_blue) + (t*bmp_blue);
+
+                        i32 new_color = 
+                            ((i32)new_red << 16) 
+                            | ((i32)new_green << 8) 
+                            | (i32)new_blue;
+
                         image_buffer[row*WIN_WIDTH + column] = 
-                            image[bmp_row_start + column];
+                            new_color;
                 }
 
                 bmp_row_start -= image_width;
@@ -196,7 +220,7 @@ game_initialize_memory(Memory *memory, i32 dt)
         MemoryPartitions *partitions = 
             (MemoryPartitions *) memory->perm_storage;
                
-        load_bitmap("resources/test3.bmp", memory->temp_storage);
+        load_bitmap("resources/test4.bmp", memory->temp_storage);
 
         /* TODO: function to get next aligned address */
         partitions->player_state = (PlayerState *) (partitions + 1);
