@@ -133,87 +133,6 @@ static TileMap tile_map5 = {
     NULL
 };
 
-/*
- * Finds first set bit in an unsigned integer, starting from lowest bit.
- * Returns the index of the set bit.
- */
-i32 
-bit_scan_forward_u(u32 number) 
-{
-        /* TODO: Use intrinsic for this */
-        bool found = false;
-        i32 index = 0;
-
-        while (!found) {
-                if (index > 31) {
-                        index = -1;
-                        break;
-                } else if (number & (1 << index)) {
-                        found = true;
-                } else {
-                        index++;
-                }
-        }
-
-        return index;
-}
-
-i32 
-convert_tile_to_pixel(i32 tile_value, CoordDimension dimension) 
-{
-        if (dimension == Y_DIMENSION) {
-                return TILE_HEIGHT * tile_value + (TILE_HEIGHT / 2);
-        } else {
-                return TILE_WIDTH * tile_value + (TILE_WIDTH / 2);
-        }
-}
-
-void
-display_bitmap(i32 *restrict image_buffer, BMPHeader *bmp) 
-{
-        u32 image_offset = bmp->image_offset;
-        i32 image_width = bmp->image_width;
-        i32 image_height = bmp->image_height;
-
-        char *image_start = ((char *) bmp) + image_offset;
-        i32 *restrict image = (i32 *) image_start;
-
-        i32 bmp_row_start = (image_height - 1) * image_width;
-
-        for (i32 row = 0; row < image_height; row++) {
-                for (i32 column = 0; column < image_width; column++) {
-                        i32 bmp_color  = image[bmp_row_start + column];
-                        i32 buffer_color = image_buffer[row*WIN_WIDTH + column];
-
-                        /* Linear Alpha Blend bmp with existing data in buffer*/
-                        i32 alpha = (bmp_color & 0xff000000) >> 24;
-                        float t = alpha / 255.0f;
-
-                        i32 bmp_red = (bmp_color & 0x00ff0000) >> 16;
-                        i32 bmp_green = (bmp_color & 0x0000ff00) >> 8;
-                        i32 bmp_blue = (bmp_color & 0x000000ff);
-
-                        i32 buffer_red = (buffer_color & 0x00ff0000) >> 16;
-                        i32 buffer_green = (buffer_color & 0x0000ff00) >> 8;
-                        i32 buffer_blue = (buffer_color & 0x000000ff);
-
-                        float new_red = ((1 - t)*buffer_red) + (t*bmp_red);
-                        float new_green = ((1 - t)*buffer_green) + (t*bmp_green);
-                        float new_blue = ((1 - t)*buffer_blue) + (t*bmp_blue);
-
-                        i32 new_color = 
-                            ((i32)new_red << 16) 
-                            | ((i32)new_green << 8) 
-                            | (i32)new_blue;
-
-                        image_buffer[row*WIN_WIDTH + column] = 
-                            new_color;
-                }
-
-                bmp_row_start -= image_width;
-        }
-}
-
 void 
 game_initialize_memory(Memory *memory, i32 dt) 
 {
@@ -230,7 +149,7 @@ game_initialize_memory(Memory *memory, i32 dt)
         WorldState *world_state = partitions->world_state;
 
         player_state->tile_x = 15;
-        player_state->tile_y = 0;
+        player_state->tile_y = 3;
         player_state->pixel_x = 
             convert_tile_to_pixel(player_state->tile_x, X_DIMENSION);
         player_state->pixel_y = 
@@ -427,6 +346,90 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
 
         display_bitmap(image_buffer, memory->temp_storage);
 
+}
+
+/*
+ * Finds first set bit in an unsigned integer, starting from lowest bit.
+ * Returns the index of the set bit.
+ */
+i32 
+bit_scan_forward_u(u32 number) 
+{
+        /* TODO: Use intrinsic for this */
+        bool found = false;
+        i32 index = 0;
+
+        while (!found) {
+                if (index > 31) {
+                        index = -1;
+                        break;
+                } else if (number & (1 << index)) {
+                        found = true;
+                } else {
+                        index++;
+                }
+        }
+
+        return index;
+}
+
+i32 
+convert_tile_to_pixel(i32 tile_value, CoordDimension dimension) 
+{
+        if (dimension == Y_DIMENSION) {
+                return TILE_HEIGHT * tile_value + (TILE_HEIGHT / 2);
+        } else {
+                return TILE_WIDTH * tile_value + (TILE_WIDTH / 2);
+        }
+}
+
+void
+display_bitmap(i32 *restrict image_buffer, BMPHeader *bmp) 
+{
+        u32 image_offset = bmp->image_offset;
+        i32 image_width = bmp->image_width;
+        i32 image_height = bmp->image_height;
+
+        char *image_start = ((char *) bmp) + image_offset;
+        i32 *restrict image = (i32 *) image_start;
+
+        i32 bmp_row_start = (image_height - 1) * image_width;
+
+        for (i32 row = 0; row < image_height; row++) {
+                for (i32 column = 0; column < image_width; column++) {
+                        i32 bmp_color  = image[bmp_row_start + column];
+                        i32 buffer_color = image_buffer[row*WIN_WIDTH + column];
+
+                        /* Linear Alpha Blend bmp with existing data in buffer*/
+                        i32 alpha = (bmp_color & 0xff000000) >> 24;
+                        float opacity = alpha / 255.0f;
+
+                        i32 bmp_red = (bmp_color & 0x00ff0000) >> 16;
+                        i32 bmp_green = (bmp_color & 0x0000ff00) >> 8;
+                        i32 bmp_blue = (bmp_color & 0x000000ff);
+
+                        i32 buffer_red = (buffer_color & 0x00ff0000) >> 16;
+                        i32 buffer_green = (buffer_color & 0x0000ff00) >> 8;
+                        i32 buffer_blue = (buffer_color & 0x000000ff);
+
+                        float new_red = 
+                            ((1 - opacity)*buffer_red) + (opacity*bmp_red);
+                        float new_green = 
+                            ((1 - opacity)*buffer_green) + (opacity*bmp_green);
+                        float new_blue = 
+                            ((1 - opacity)*buffer_blue) + (opacity*bmp_blue);
+
+                        i32 new_color = 
+                            ((i32)new_red << 16) 
+                            | ((i32)new_green << 8) 
+                            | (i32)new_blue;
+
+                        image_buffer[row*WIN_WIDTH + column] = 
+                            new_color;
+                }
+
+                bmp_row_start -= image_width;
+        }
 }
 
 i32 

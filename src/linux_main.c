@@ -187,7 +187,10 @@ main(int argc, char *argv[])
         struct timespec start, end, sleeptime;
         i64 delta;
 
-        /* Approx. target time in ms between frames, used for calculations */
+        /* 
+         * Approx. target time in ms between frames, used for calculations.
+         * Will be actual time between frames when we have variable framerates.
+         */
         i32 dt = 16;
 
 
