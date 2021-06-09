@@ -1,12 +1,31 @@
+/* 
+ *
+ * Copyright (C) 2021 Alex Garrett
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+ */
+
 #define WIN_X 10
 #define WIN_Y 10
 #define WIN_WIDTH 1280
 #define WIN_HEIGHT 720
 #define WIN_BORDER 1
-#define TILE_WIDTH 40
-#define TILE_HEIGHT 40
-#define SCREEN_WIDTH_TILES 32
-#define SCREEN_HEIGHT_TILES 18
+#define TILE_WIDTH 32
+#define TILE_HEIGHT 32
+#define SCREEN_WIDTH_TILES 40
+#define SCREEN_HEIGHT_TILES 20
 
 typedef int8_t  i8;
 typedef int16_t i16;
@@ -125,24 +144,11 @@ typedef struct {
 } Sound;
 
 
-i32 bit_scan_forward_u(u32 number);
-i32 convert_tile_to_pixel(i32 tile_value, CoordDimension dimension);
-void display_bitmap(i32 *restrict image_buffer, BMPHeader *bmp);
 void game_initialize_memory(Memory *memory, i32 dt);
 void game_update_and_render(Memory *restrict memory, Input *restrict input, 
-                       Sound *restrict game_sound, i32 *restrict image_buffer,
-                       i32 dt);
-i32 load_bitmap(const char file_path[], void *location);
-void render_player(i32 *restrict image_buffer, 
-                   PlayerState *restrict player_state);
-void render_rectangle(i32 *image_buffer, i32 min_x, i32 min_y, i32 max_x,
-                      i32 max_y, float red, float green, float blue);
-void render_tile_map(i32 *restrict image_buffer, i32 *restrict tile_map,
-                     i32 x_offset,i32 y_offset);
-void transition_screens(i32 *restrict image_buffer,
-                        PlayerState *restrict player_state,
-                        WorldState *restrict world_state);
-
+                            Sound *restrict game_sound, 
+                            i32 *restrict image_buffer,
+                            i32 dt);
 
 /* 
  * These are defined by platform layer.
