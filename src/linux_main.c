@@ -175,7 +175,7 @@ main(int argc, char *argv[])
         assert(perm_storage_size_bytes  % 64 == 0);
         memory.perm_storage = aligned_alloc(64, perm_storage_size_bytes);
         if (!memory.perm_storage) {
-                fprintf(stderr, "Failed to perm storage for game\n");
+                fprintf(stderr, "Failed to allocate perm storage for game\n");
                 exit_code = 1;
                 goto cleanup;
         }
