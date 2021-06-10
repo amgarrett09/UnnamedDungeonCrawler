@@ -1,5 +1,4 @@
 /* 
- *
  * Copyright (C) 2021 Alex Garrett
  *
  * This program is free software: you can redistribute it and/or modify
@@ -14,7 +13,6 @@
  * 
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
  */
 
 /* 
@@ -171,8 +169,12 @@ static const i32 SCREEN_WIDTH_PIXELS = SCREEN_WIDTH_TILES * TILE_WIDTH;
 
 static i32 bit_scan_forward_u(u32 number);
 static i32 convert_tile_to_pixel(i32 tile_value, CoordDimension dimension);
-static void display_bitmap(i32 *restrict image_buffer, BMPHeader *bmp);
-static i32 load_bitmap(const char file_path[], void *location);
+static void display_bitmap(i32 *restrict image_buffer, BMPHeader *bmp, 
+                           i32 source_x, i32 source_y, i32 target_x, 
+                           i32 target_y, i32 image_width, i32 image_height,
+                           bool mirrored);
+
+static size_t load_bitmap(const char file_path[], void *location);
 static void render_player(i32 *restrict image_buffer, 
                           PlayerState *restrict player_state);
 static void render_rectangle(i32 *image_buffer, i32 min_x, i32 max_x, i32 min_y,
@@ -190,13 +192,19 @@ game_initialize_memory(Memory *memory, i32 dt)
 {
         MemoryPartitions *partitions = 
             (MemoryPartitions *) memory->perm_storage;
-               
+
         /* TODO: function to get next aligned address */
         partitions->player_state = (PlayerState *) (partitions + 1);
         partitions->world_state = (WorldState *) (partitions->player_state + 1);
 
         PlayerState *player_state = partitions->player_state;
         WorldState *world_state = partitions->world_state;
+
+        size_t bmp_result = 
+            load_bitmap("resources/player_sprites.bmp", memory->temp_storage);
+        if (bmp_result) {
+                player_state->sprite_location = memory->temp_storage;
+        }
 
         player_state->tile_x = 15;
         player_state->tile_y = 3;
@@ -207,6 +215,7 @@ game_initialize_memory(Memory *memory, i32 dt)
         player_state->move_counter = 0;
         player_state->move_direction = NULLDIR;
         player_state->speed = ((TILE_WIDTH / 8) * dt) / 16;
+        player_state->sprite_number = 1;
 
         tile_map1.top_connection = &tile_map2;
         tile_map1.right_connection = &tile_map3;
@@ -317,7 +326,7 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
                         return;
                 }
 
-                /* Collision detection */
+                /* Movement and collision detection */
                 i32 *current_tile_map = 
                     (i32 *) world_state->current_tile_map->data;
                 if (keys & UP_MASK || keys & DOWN_MASK) {
@@ -325,6 +334,9 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
                         i32 change = is_up ? -1 : 1;
                         i32 new_tile_y = player_state->tile_y + change;
                         i32 tile_x = player_state->tile_x;
+
+                        player_state->sprite_number = is_up ? 5 : 1;
+                        player_state->move_direction = is_up ? UPDIR : DOWNDIR;
 
                         bool is_not_colliding = true;
 
@@ -337,8 +349,6 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
 
                         if (is_not_colliding) {
                                 player_state->tile_y = new_tile_y;
-                                player_state->move_direction = 
-                                    is_up ? UPDIR : DOWNDIR;
                                 player_state->move_counter = TILE_HEIGHT;
                         }
                 } else if (keys & RIGHT_MASK || keys & LEFT_MASK) {
@@ -346,6 +356,10 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
                         i32 change = is_right ? 1 : -1;
                         i32 new_tile_x = player_state->tile_x + change;
                         i32 tile_y = player_state->tile_y;
+
+                        player_state->sprite_number = 9;
+                        player_state->move_direction = 
+                            is_right ? RIGHTDIR : LEFTDIR;
 
                         bool is_not_colliding = true;
 
@@ -358,8 +372,6 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
 
                         if (is_not_colliding) {
                                 player_state->tile_x = new_tile_x;
-                                player_state->move_direction = 
-                                    is_right ? RIGHTDIR : LEFTDIR;
                                 player_state->move_counter = TILE_WIDTH;
                         }
                 }
@@ -433,22 +445,50 @@ convert_tile_to_pixel(i32 tile_value, CoordDimension dimension)
 }
 
 static void
-display_bitmap(i32 *restrict image_buffer, BMPHeader *bmp) 
+display_bitmap(i32 *restrict image_buffer, BMPHeader *bmp, 
+               i32 source_x, i32 source_y, i32 target_x, i32 target_y,
+               i32 source_width, i32 source_height, bool mirrored) 
 {
         u32 image_offset = bmp->image_offset;
-        i32 image_width = bmp->image_width;
-        i32 image_height = bmp->image_height;
+        i32 bmp_width = bmp->image_width;
+        i32 bmp_height = bmp->image_height;
 
         char *image_start = ((char *) bmp) + image_offset;
         i32 *restrict image = (i32 *) image_start;
 
         /* BMP pixels are arranged bottom to top */
-        i32 bmp_row_start = (image_height - 1) * image_width;
+        i32 bmp_row_start = (bmp_height - 1) * bmp_width;
 
-        for (i32 row = 0; row < image_height; row++) {
-                for (i32 column = 0; column < image_width; column++) {
-                        i32 bmp_color  = image[bmp_row_start + column];
-                        i32 buffer_color = image_buffer[row*WIN_WIDTH + column];
+        for (i32 row = 0; row < source_height; row++) {
+                for (i32 column = 0; column < source_width; column++) {
+                        i32 source_column = 
+                            mirrored ? source_width - column - 1 : column;
+
+                        i32 target_row = row + target_y;
+                        if (target_row < 0) {
+                                target_row = 0;
+                        } else if (target_row >= WIN_HEIGHT) {
+                                target_row = WIN_HEIGHT - 1;
+                        }
+
+                        i32 target_column = column + target_x;
+                        if (target_column < 0) {
+                                target_column = 0;
+                        } else if (target_column >= WIN_WIDTH) {
+                                target_column = WIN_WIDTH - 1;
+                        }
+                        
+                        i32 source_pixel = 
+                            bmp_row_start + source_column + source_x;
+                        if (source_pixel < 0) {
+                                source_pixel = 0;
+                        } else if (source_pixel >= bmp_width*bmp_height) {
+                                source_pixel = bmp_width*bmp_height -1;
+                        }
+
+                        i32 bmp_color  = image[source_pixel];
+                        i32 buffer_color = 
+                            image_buffer[target_row*WIN_WIDTH + target_column];
 
                         /* Linear Alpha Blend bmp with existing data in buffer*/
                         i32 alpha = (bmp_color & 0xff000000) >> 24;
@@ -474,23 +514,27 @@ display_bitmap(i32 *restrict image_buffer, BMPHeader *bmp)
                             | ((i32)new_green << 8) 
                             | (i32)new_blue;
 
-                        image_buffer[row*WIN_WIDTH + column] = new_color;
+                        image_buffer[target_row*WIN_WIDTH + target_column] = 
+                            new_color;
                 }
 
-                bmp_row_start -= image_width;
+                bmp_row_start -= bmp_width;
         }
 }
 
-static i32 
+static size_t 
 load_bitmap(const char file_path[], void *location) 
 {
-        i32 result = debug_platform_load_asset(file_path, location);
+        size_t result = debug_platform_load_asset(file_path, location);
 
-        if (result < 0) {
-                return -1;
+        if (result == 0) {
+                return 0;
         }
 
         BMPHeader *bmp = (BMPHeader *) location;
+
+        /* Put an accurate file size in the header */
+        bmp->file_size = (u32) result;
 
         u32 image_offset = bmp->image_offset;
         i32 image_width = bmp->image_width;
@@ -528,7 +572,7 @@ load_bitmap(const char file_path[], void *location)
                 image[i] = alpha | red | green | blue;
         }
 
-        return 0;
+        return result;
 }
 
 static void
@@ -539,9 +583,17 @@ render_player(i32 *restrict image_buffer, PlayerState *restrict player_state)
         i32 player_min_y = player_state->pixel_y - 16;
         i32 player_max_y = player_state->pixel_y + 17;
 
-        render_rectangle(image_buffer, player_min_x, player_max_x, player_min_y, 
-                         player_max_y, 0.0, 0.8, 0.25);
+        i32 sprite_number = player_state->sprite_number;
+        bool mirrored = player_state->move_direction == LEFTDIR;
 
+        if (player_state->sprite_location) {
+                display_bitmap(image_buffer, player_state->sprite_location,
+                               sprite_number*TILE_WIDTH, 0, player_min_x, 
+                               player_min_y, 32, 32, mirrored);
+        } else {
+                render_rectangle(image_buffer, player_min_x, player_max_x, 
+                                 player_min_y, player_max_y, 0.0, 0.8, 0.25);
+        }
 }
 
 static void 

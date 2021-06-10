@@ -1,5 +1,4 @@
 /* 
- *
  * Copyright (C) 2021 Alex Garrett
  *
  * This program is free software: you can redistribute it and/or modify
@@ -14,7 +13,6 @@
  * 
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
  */
 
 #include <time.h>
@@ -329,18 +327,18 @@ debug_platform_stream_audio(const char file_path[], Sound *game_sound)
         return (i32) result;
 }
 
-i32 
+size_t 
 debug_platform_load_asset(const char file_path[], void *memory_location) 
 {
         FILE *file = fopen(file_path, "rb");
 
         if (file == NULL) {
                 fprintf(stderr, "Failed to open asset.\n");
-                return -1;
+                return 0;
         }
 
         fseek(file, 0, SEEK_END);
-        u64 file_size = ftell(file);
+        size_t file_size = ftell(file);
         rewind(file);
 
         size_t result = fread(memory_location, 1, file_size, file);
@@ -348,12 +346,12 @@ debug_platform_load_asset(const char file_path[], void *memory_location)
         if (result != file_size) {
                 fclose(file);
                 fprintf(stderr, "Error reading asset\n");
-                return -1;
+                return 0;
         }
 
         fclose(file);
 
-        return 0;
+        return result;
 }
 
 void

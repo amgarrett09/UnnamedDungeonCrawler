@@ -1,5 +1,4 @@
 /* 
- *
  * Copyright (C) 2021 Alex Garrett
  *
  * This program is free software: you can redistribute it and/or modify
@@ -14,7 +13,6 @@
  * 
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
  */
 
 #define WIN_X 10
@@ -95,6 +93,8 @@ typedef struct {
 } Input;
 
 typedef struct {
+        void *sprite_location;
+        i32 sprite_number;
         i32 keys;
         i32 pixel_x;
         i32 pixel_y;
@@ -156,5 +156,5 @@ void game_update_and_render(Memory *restrict memory, Input *restrict input,
  */
 i32 debug_platform_stream_audio(const char file_path[], Sound *game_sound);
 
-i32 debug_platform_load_asset(const char file_path[], void *memory_location);
+size_t debug_platform_load_asset(const char file_path[], void *memory_location);
 
