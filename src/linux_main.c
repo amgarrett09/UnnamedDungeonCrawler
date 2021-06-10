@@ -1,3 +1,20 @@
+/* 
+ * Copyright (C) 2021 Alex Garrett
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <time.h>
 #include <assert.h>
 
@@ -151,19 +168,33 @@ main(int argc, char *argv[])
                 }
         }
 
-        /* Setup memory pool for game to use */
-        i32 memory_size_bytes = 4096;
-        assert(memory_size_bytes % 64 == 0);
+        /* Setup memory pools for game to use */
         Memory memory;
-        memory.perm_storage = aligned_alloc(64, memory_size_bytes);
+
+        i32 perm_storage_size_bytes = 4*1024;
+        assert(perm_storage_size_bytes  % 64 == 0);
+        memory.perm_storage = aligned_alloc(64, perm_storage_size_bytes);
         if (!memory.perm_storage) {
-                fprintf(stderr, "Failed to allocate memory for game\n");
+                fprintf(stderr, "Failed to allocate perm storage for game\n");
                 exit_code = 1;
                 goto cleanup;
         }
-        memory.perm_storage_size = memory_size_bytes;
-        memory.is_initialized = false;
+        memory.perm_storage_size = perm_storage_size_bytes;
         memset(memory.perm_storage, 0, memory.perm_storage_size);
+
+
+        i32 temp_storage_size_bytes = 40*1024*1024;
+        assert(temp_storage_size_bytes  % 64 == 0);
+        memory.temp_storage = aligned_alloc(64, temp_storage_size_bytes);
+        if (!memory.temp_storage) {
+                fprintf(stderr, "Failed to temp storage for game\n");
+                exit_code = 1;
+                goto cleanup;
+        }
+        memory.temp_storage_size = temp_storage_size_bytes;
+        memset(memory.temp_storage, 0, memory.temp_storage_size);
+
+        memory.is_initialized = false;
 
         /* Setup input */
         Input input = { NULLKEY, NULLKEY };
@@ -173,6 +204,10 @@ main(int argc, char *argv[])
         struct timespec start, end, sleeptime;
         i64 delta;
 
+        /* 
+         * Approx. target time in ms between frames, used for calculations.
+         * Will be actual time between frames when we have variable framerates.
+         */
         i32 dt = 16;
 
 
@@ -261,6 +296,10 @@ cleanup:
             free(memory.perm_storage);
         }
 
+        if (memory.temp_storage) {
+            free(memory.temp_storage);
+        }
+
         return exit_code;
 }
 
@@ -286,6 +325,33 @@ debug_platform_stream_audio(const char file_path[], Sound *game_sound)
         }
         
         return (i32) result;
+}
+
+size_t 
+debug_platform_load_asset(const char file_path[], void *memory_location) 
+{
+        FILE *file = fopen(file_path, "rb");
+
+        if (file == NULL) {
+                fprintf(stderr, "Failed to open asset.\n");
+                return 0;
+        }
+
+        fseek(file, 0, SEEK_END);
+        size_t file_size = ftell(file);
+        rewind(file);
+
+        size_t result = fread(memory_location, 1, file_size, file);
+
+        if (result != file_size) {
+                fclose(file);
+                fprintf(stderr, "Error reading asset\n");
+                return 0;
+        }
+
+        fclose(file);
+
+        return result;
 }
 
 void
