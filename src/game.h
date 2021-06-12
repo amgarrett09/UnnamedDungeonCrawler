@@ -15,6 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+/* 
+ * Dependencies: <stdint.h>, <stdbool.h>
+ */
+
 #define WIN_X 10
 #define WIN_Y 10
 #define WIN_WIDTH 1280

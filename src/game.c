@@ -38,9 +38,9 @@ static TileMap tile_map1 = {
 { 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1},
 { 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1},
 { 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1},
-{ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-{ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-{ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+{ 1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1},
+{ 1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1},
+{ 1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0}
 },
 NULL,
 NULL,
@@ -459,36 +459,41 @@ display_bitmap(i32 *restrict image_buffer, BMPHeader *bmp,
         /* BMP pixels are arranged bottom to top */
         i32 bmp_row_start = (bmp_height - 1) * bmp_width;
 
-        for (i32 row = 0; row < source_height; row++) {
-                for (i32 column = 0; column < source_width; column++) {
+        /* Make sure following loop never goes out of bounds */
+        i32 start_row = 0;
+        i32 end_row = source_height;
+        i32 start_column = 0;
+        i32 end_column = source_width;
+
+        if (target_y > WIN_HEIGHT - source_height) {
+                end_column -= target_y - (WIN_HEIGHT - source_height);
+        } else if (target_y < 0) {
+                start_row -= target_y;
+                bmp_row_start += target_y*bmp_width;
+        }
+
+        if (target_x >= WIN_WIDTH - source_width) {
+                end_column -= target_x - (WIN_WIDTH - source_width);
+        } else if (target_x < 0) {
+                start_column -= target_x;
+        }
+
+        for (i32 row = start_row; row < end_row; row++) {
+                for (i32 column = start_column; column < end_column; column++) {
                         i32 source_column = 
-                            mirrored ? source_width - column - 1 : column;
+                            mirrored ? end_column - column - 1 : column;
 
                         i32 target_row = row + target_y;
-                        if (target_row < 0) {
-                                target_row = 0;
-                        } else if (target_row >= WIN_HEIGHT) {
-                                target_row = WIN_HEIGHT - 1;
-                        }
 
                         i32 target_column = column + target_x;
-                        if (target_column < 0) {
-                                target_column = 0;
-                        } else if (target_column >= WIN_WIDTH) {
-                                target_column = WIN_WIDTH - 1;
-                        }
                         
                         i32 source_pixel = 
                             bmp_row_start + source_column + source_x;
-                        if (source_pixel < 0) {
-                                source_pixel = 0;
-                        } else if (source_pixel >= bmp_width*bmp_height) {
-                                source_pixel = bmp_width*bmp_height -1;
-                        }
+                        i32 target_pixel = target_row*WIN_WIDTH + target_column;
 
                         i32 bmp_color  = image[source_pixel];
                         i32 buffer_color = 
-                            image_buffer[target_row*WIN_WIDTH + target_column];
+                            image_buffer[target_pixel];
 
                         /* Linear Alpha Blend bmp with existing data in buffer*/
                         i32 alpha = (bmp_color & 0xff000000) >> 24;
@@ -514,8 +519,7 @@ display_bitmap(i32 *restrict image_buffer, BMPHeader *bmp,
                             | ((i32)new_green << 8) 
                             | (i32)new_blue;
 
-                        image_buffer[target_row*WIN_WIDTH + target_column] = 
-                            new_color;
+                        image_buffer[target_pixel] = new_color;
                 }
 
                 bmp_row_start -= bmp_width;
