@@ -465,8 +465,8 @@ display_bitmap(i32 *restrict image_buffer, BMPHeader *bmp,
         i32 start_column = 0;
         i32 end_column = source_width;
 
-        if (target_y > WIN_HEIGHT - source_height) {
-                end_column -= target_y - (WIN_HEIGHT - source_height);
+        if (target_y >= WIN_HEIGHT - source_height) {
+                end_row -= target_y - (WIN_HEIGHT - source_height);
         } else if (target_y < 0) {
                 start_row -= target_y;
                 bmp_row_start += target_y*bmp_width;
