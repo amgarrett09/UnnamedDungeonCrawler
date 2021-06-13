@@ -110,7 +110,8 @@ typedef struct {
 } PlayerState;
 
 typedef struct TileMap {
-        i32 data[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
+        i32 collision_map[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
+        i32 tile_map[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
         struct TileMap *top_connection;
         struct TileMap *right_connection;
         struct TileMap *bottom_connection;
@@ -120,6 +121,7 @@ typedef struct TileMap {
 typedef struct {
         TileMap *current_tile_map;
         TileMap *next_tile_map;
+        void *tile_set;
         bool screen_transitioning;
         Direction transition_direction;
         i32 transition_counter;
@@ -130,6 +132,7 @@ typedef struct {
         size_t perm_storage_size;
         void *temp_storage;
         size_t temp_storage_size;
+        size_t temp_next_load_offset;
         bool is_initialized;
 } Memory;
 

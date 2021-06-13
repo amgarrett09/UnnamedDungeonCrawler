@@ -192,6 +192,7 @@ main(int argc, char *argv[])
                 goto cleanup;
         }
         memory.temp_storage_size = temp_storage_size_bytes;
+        memory.temp_next_load_offset = 0;
         memset(memory.temp_storage, 0, memory.temp_storage_size);
 
         memory.is_initialized = false;
