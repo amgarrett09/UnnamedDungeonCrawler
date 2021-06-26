@@ -32,13 +32,17 @@
 #include "tile_maps.c"
 #include "game.c"
 
-void handle_key_press(XKeyEvent *restrict xkey, Input *restrict input);
-void handle_key_release(XKeyEvent *restrict xkey, Input *restrict input);
+static void handle_key_press(XKeyEvent *restrict xkey, Input *restrict input);
+static void handle_key_release(XKeyEvent *restrict xkey, Input *restrict input);
+static i32 init_window(Display **display, Visual **visual, Window *window, 
+                       GC *gc, XImage **ximage, char **image_buffer);
+
 
 int 
 main(int argc, char *argv[]) 
 {
         int exit_code = 0;
+        i32 rc = 0;
 
         /* Declarations for X11 */
         Display *display = NULL;
@@ -46,9 +50,8 @@ main(int argc, char *argv[])
         Window window = {0};
         XEvent event = {0};
         GC gc = {0};
-        i32 screen = 0;
-        i32 depth = 0;
         XImage *ximage = NULL;
+        char *image_buffer = NULL;
 
         /* Declarations for ALSA */
         Sound game_sound = {0};
@@ -63,52 +66,13 @@ main(int argc, char *argv[])
         i32 dir = 0;
         snd_pcm_uframes_t frames = 0;
 
-        /* X11 Initialization */
-        display = XOpenDisplay(NULL);
-        if (!display) {
-                fprintf(stderr, "Cannot open display\n");
+
+        rc = init_window(&display, &visual, &window, &gc,
+                         &ximage, &image_buffer);
+        if (rc < 0) {
                 exit_code = 1;
                 goto cleanup;
         }
-
-        screen = DefaultScreen(display);
-
-        depth = DefaultDepth(display, screen);
-
-        visual = DefaultVisual(display, screen);
-
-        window = XCreateSimpleWindow(display, RootWindow(display, screen), 
-                                     WIN_X, WIN_Y, WIN_WIDTH, WIN_HEIGHT, 
-                                     WIN_BORDER, BlackPixel(display, screen),   
-                                     BlackPixel(display, screen));
-
-        gc = DefaultGC(display, screen);
-
-        Atom delete_window = XInternAtom(display, "WM_DELETE_WINDOW", 0);
-        XSetWMProtocols(display, window, &delete_window, 1);
-
-        XSelectInput(display, window, 
-                     ExposureMask | KeyPressMask | KeyReleaseMask);
-
-        XMapWindow(display, window);
-
-        i32 video_buffer_size = WIN_WIDTH * WIN_HEIGHT * 4;
-        assert(video_buffer_size % 64 == 0);
-        /* This will get freed by XDestroyImage */
-        char *image_buffer = (char *) aligned_alloc(64, video_buffer_size);
-        if (!image_buffer) {
-                fprintf(stderr, "Failed to allocate image buffer\n");
-                exit_code = 1;
-                goto cleanup;
-        }
-        memset(image_buffer, 0, video_buffer_size);
-
-        /* TODO: Explore using Shm for this */
-        ximage = XCreateImage(display, visual, depth, ZPixmap, 0, image_buffer, 
-                              WIN_WIDTH, WIN_HEIGHT, 32, 0);
-
-        XkbSetDetectableAutoRepeat(display, true, NULL);
-
 
         /* ALSA initialization */
         err = snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
@@ -356,7 +320,7 @@ debug_platform_load_asset(const char file_path[], void *memory_location)
         return result;
 }
 
-void
+static void
 handle_key_press(XKeyEvent *restrict xkey, Input *restrict input)
 {
         input->key_released = NULLKEY;
@@ -378,7 +342,7 @@ handle_key_press(XKeyEvent *restrict xkey, Input *restrict input)
         }
 }
 
-void
+static void
 handle_key_release(XKeyEvent *restrict xkey, Input *restrict input) 
 {
         input->key_pressed = NULLKEY;
@@ -398,4 +362,57 @@ handle_key_release(XKeyEvent *restrict xkey, Input *restrict input)
                 default:
                         break;
         }
+}
+
+static 
+i32 init_window(Display **display, Visual **visual, Window *window, 
+                       GC *gc, XImage **ximage, char **image_buffer)
+{
+        *display = XOpenDisplay(NULL);
+        if (!display) {
+                fprintf(stderr, "Cannot open display\n");
+                return -1;
+        }
+
+        u32 screen = DefaultScreen(*display);
+
+        u32 depth = DefaultDepth(*display, screen);
+
+        *visual = DefaultVisual(*display, screen);
+
+        *window = XCreateSimpleWindow(*display, RootWindow(*display, screen), 
+                                     WIN_X, WIN_Y, WIN_WIDTH, WIN_HEIGHT, 
+                                     WIN_BORDER, BlackPixel(*display, screen),   
+                                     BlackPixel(*display, screen));
+
+        *gc = DefaultGC(*display, screen);
+
+
+        Atom delete_window = XInternAtom(*display, "WM_DELETE_WINDOW", 0);
+        XSetWMProtocols(*display, *window, &delete_window, 1);
+
+        XSelectInput(*display, *window, 
+                     ExposureMask | KeyPressMask | KeyReleaseMask);
+
+        XMapWindow(*display, *window);
+
+        i32 video_buffer_size = WIN_WIDTH * WIN_HEIGHT * 4;
+        assert(video_buffer_size % 64 == 0);
+        /* This will get freed by XDestroyImage */
+        char *image_buffer_tmp = aligned_alloc(64, video_buffer_size);
+        if (!image_buffer_tmp) {
+                fprintf(stderr, "Failed to allocate image buffer\n");
+                return -1;
+        }
+
+        memset(image_buffer_tmp, 0, video_buffer_size);
+        *image_buffer = image_buffer_tmp;
+
+        /* TODO: Explore using Shm for this */
+        *ximage = XCreateImage(*display, *visual, depth, ZPixmap, 0, *image_buffer, 
+                              WIN_WIDTH, WIN_HEIGHT, 32, 0);
+
+        XkbSetDetectableAutoRepeat(*display, true, NULL);
+
+        return 0;
 }
