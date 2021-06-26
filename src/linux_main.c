@@ -29,6 +29,7 @@
 #include <stdbool.h>
 
 #include "game.h"
+#include "tile_maps.c"
 #include "game.c"
 
 void handle_key_press(XKeyEvent *restrict xkey, Input *restrict input);

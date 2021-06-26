@@ -29,6 +29,11 @@
 #define SCREEN_WIDTH_TILES 40
 #define SCREEN_HEIGHT_TILES 20
 
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+#define MEMBER_SIZE(type, member) sizeof(((type *)0)->member)
+#define MEMBER_ARRAY_SIZE(type, member, array_data_type) \
+        (sizeof(((type *)0)->member) / sizeof(array_data_type))
+
 typedef int8_t  i8;
 typedef int16_t i16;
 typedef int32_t i32;
