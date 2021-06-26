@@ -39,7 +39,7 @@ static i32 init_window(Display **display, Visual **visual, Window *window,
 
 
 int 
-main(int argc, char *argv[]) 
+main() 
 {
         int exit_code = 0;
         i32 rc = 0;
@@ -210,7 +210,7 @@ main(int argc, char *argv[])
                 }
 
                 game_update_and_render(&memory, &input, &game_sound, 
-                                       (i32 *)image_buffer, dt);
+                                       (i32 *)image_buffer);
 
                 if (game_sound.sound_playing && game_sound.sound_initialized) {
                         err = snd_pcm_writei(handle, game_sound.sound_buffer, 
@@ -366,7 +366,7 @@ handle_key_release(XKeyEvent *restrict xkey, Input *restrict input)
 
 static 
 i32 init_window(Display **display, Visual **visual, Window *window, 
-                       GC *gc, XImage **ximage, char **image_buffer)
+                GC *gc, XImage **ximage, char **image_buffer)
 {
         *display = XOpenDisplay(NULL);
         if (!display) {

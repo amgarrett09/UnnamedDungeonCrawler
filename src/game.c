@@ -120,8 +120,7 @@ game_initialize_memory(Memory *memory, i32 dt)
 
 void 
 game_update_and_render(Memory *restrict memory, Input *restrict input, 
-                       Sound *restrict game_sound, i32 *restrict image_buffer,
-                       i32 dt) 
+                       Sound *restrict game_sound, i32 *restrict image_buffer) 
 {
         MemoryPartitions *partitions = 
             (MemoryPartitions *) memory->perm_storage;

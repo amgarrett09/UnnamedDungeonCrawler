@@ -150,7 +150,7 @@ typedef struct {
 typedef struct {
         char *sound_buffer;
         FILE *stream;
-        int sound_buffer_size;
+        size_t sound_buffer_size;
         bool sound_initialized;
         bool sound_playing;
 } Sound;
@@ -159,8 +159,7 @@ typedef struct {
 void game_initialize_memory(Memory *memory, i32 dt);
 void game_update_and_render(Memory *restrict memory, Input *restrict input, 
                             Sound *restrict game_sound, 
-                            i32 *restrict image_buffer,
-                            i32 dt);
+                            i32 *restrict image_buffer);
 
 /* 
  * These are defined by platform layer.
