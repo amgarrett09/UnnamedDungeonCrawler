@@ -82,8 +82,6 @@ main()
 		game_sound.sound_initialized = true;
 	}
 
-
-        /* Setup input */
         Input input = { NULLKEY, NULLKEY };
 
         /* Setup timespecs to enforce a set framerate in main loop */
@@ -394,9 +392,9 @@ init_sound(Sound *game_sound, snd_pcm_hw_params_t **params, snd_pcm_t **handle,
 	return 0;
 }
 
-static 
-i32 init_window(Display **display, Visual **visual, Window *window, 
-                GC *gc, XImage **ximage, char **image_buffer)
+static i32 
+init_window(Display **display, Visual **visual, Window *window, 
+            GC *gc, XImage **ximage, char **image_buffer)
 {
         *display = XOpenDisplay(NULL);
         if (!display) {

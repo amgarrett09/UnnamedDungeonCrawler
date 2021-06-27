@@ -51,50 +51,47 @@ static void transition_screens(i32 *restrict image_buffer,
 void 
 game_initialize_memory(Memory *memory, i32 dt) 
 {
-        MemoryPartitions *partitions = 
-            (MemoryPartitions *) memory->perm_storage;
+        MemoryPartitions *partitions = memory->perm_storage;
 
-
-        partitions->player_state = (PlayerState *) 
-            get_next_aligned_offset((size_t)partitions, 
-                                    sizeof(MemoryPartitions),
-                                    32);
-        partitions->world_state = (WorldState *) 
-            get_next_aligned_offset((size_t)partitions->player_state,
-                                    sizeof(PlayerState),
-                                    32);
+        partitions->player_state = 
+		get_next_aligned_offset((size_t)partitions, 
+                                        sizeof(MemoryPartitions), 
+					32);
+        partitions->world_state = 
+		get_next_aligned_offset((size_t)partitions->player_state,
+                                        sizeof(PlayerState),
+                                        32);
                                                    
 
         PlayerState *player_state = partitions->player_state;
         WorldState *world_state = partitions->world_state;
 
-        size_t sprite_load_result = 
-            load_bitmap("resources/player_sprites.bmp", memory->temp_storage);
+        size_t sprite_load_result = load_bitmap("resources/player_sprites.bmp", 
+		                                memory->temp_storage);
         if (sprite_load_result) {
                 player_state->sprite_location = memory->temp_storage;
                 memory->temp_next_load_offset = 
-                    get_next_aligned_offset(memory->temp_next_load_offset,
-                                            sprite_load_result, 32);
+			get_next_aligned_offset(memory->temp_next_load_offset,
+                                                sprite_load_result, 32);
         }
 
         char *next_load_location = 
-            (char *) memory->temp_storage + memory->temp_next_load_offset;
-        size_t tile_load_result = 
-            load_bitmap("resources/tile_set.bmp", 
-                        (void *)next_load_location);
+		(char *)memory->temp_storage + memory->temp_next_load_offset;
+        size_t tile_load_result = load_bitmap("resources/tile_set.bmp", 
+                                              (void *)next_load_location);
         if (tile_load_result) {
                 world_state->tile_set = (void *)next_load_location;
                 memory->temp_next_load_offset = 
-                    get_next_aligned_offset(memory->temp_next_load_offset,
-                                            tile_load_result, 32);
+			get_next_aligned_offset(memory->temp_next_load_offset,
+                                                tile_load_result, 32);
         }
 
         player_state->tile_x = 15;
         player_state->tile_y = 3;
         player_state->pixel_x = 
-            convert_tile_to_pixel(player_state->tile_x, X_DIMENSION);
+		convert_tile_to_pixel(player_state->tile_x, X_DIMENSION);
         player_state->pixel_y = 
-            convert_tile_to_pixel(player_state->tile_y, Y_DIMENSION);
+		convert_tile_to_pixel(player_state->tile_y, Y_DIMENSION);
         player_state->move_counter = 0;
         player_state->move_direction = NULLDIR;
         player_state->speed = ((TILE_WIDTH / 8) * dt) / 16;
@@ -123,8 +120,7 @@ void
 game_update_and_render(Memory *restrict memory, Input *restrict input, 
                        Sound *restrict game_sound, i32 *restrict image_buffer) 
 {
-        MemoryPartitions *partitions = 
-            (MemoryPartitions *) memory->perm_storage;
+        MemoryPartitions *partitions = memory->perm_storage;
         PlayerState *player_state = partitions->player_state;
         WorldState *world_state = partitions->world_state;
         
@@ -228,7 +224,7 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
                             && tile_x >= 0
                             && tile_x < SCREEN_WIDTH_TILES) {
                                 is_not_colliding = !current_collision_map[
-                                    new_tile_y*SCREEN_WIDTH_TILES + tile_x];
+					new_tile_y*SCREEN_WIDTH_TILES + tile_x];
                         }
 
                         if (is_not_colliding) {
@@ -243,7 +239,7 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
 
                         player_state->sprite_number = 9;
                         player_state->move_direction = 
-                            is_right ? RIGHTDIR : LEFTDIR;
+				is_right ? RIGHTDIR : LEFTDIR;
 
                         bool is_not_colliding = true;
 
@@ -251,7 +247,7 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
                             && tile_y >= 0 
                             && tile_y < SCREEN_HEIGHT_TILES) {
                                 is_not_colliding = !current_collision_map[
-                                    tile_y*SCREEN_WIDTH_TILES + new_tile_x];
+					tile_y*SCREEN_WIDTH_TILES + new_tile_x];
                         }
 
                         if (is_not_colliding) {
@@ -384,8 +380,7 @@ display_bitmap_tile(i32 *restrict image_buffer, BMPHeader *bmp,
                         i32 target_pixel = target_row*WIN_WIDTH + target_column;
 
                         i32 bmp_color  = image[source_pixel];
-                        i32 buffer_color = 
-                            image_buffer[target_pixel];
+                        i32 buffer_color = image_buffer[target_pixel];
 
                         /* Linear Alpha Blend bmp with existing data in buffer*/
                         i32 alpha = (bmp_color & 0xff000000) >> 24;
@@ -400,11 +395,13 @@ display_bitmap_tile(i32 *restrict image_buffer, BMPHeader *bmp,
                         i32 buffer_blue = (buffer_color & 0x000000ff);
 
                         float new_red = 
-                            ((1 - opacity)*buffer_red) + (opacity*bmp_red);
+				((1 - opacity)*buffer_red) + (opacity*bmp_red);
                         float new_green = 
-                            ((1 - opacity)*buffer_green) + (opacity*bmp_green);
+				((1 - opacity)*buffer_green) 
+				 + (opacity*bmp_green);
                         float new_blue = 
-                            ((1 - opacity)*buffer_blue) + (opacity*bmp_blue);
+				((1 - opacity)*buffer_blue) 
+				 + (opacity*bmp_blue);
 
                         i32 new_color = 
                             ((i32)new_red << 16) 
@@ -426,9 +423,9 @@ get_next_aligned_offset(size_t start_offset, size_t min_to_add,
         size_t remainder = min_new_offset % alignment;
 
         if (remainder) {
-            return min_new_offset + (alignment - remainder);
+		return min_new_offset + (alignment - remainder);
         } else {
-            return min_new_offset;
+		return min_new_offset;
         }
 }
 
@@ -474,7 +471,7 @@ load_bitmap(const char file_path[], void *location)
 
                 /* Swizzle color values to ensure ARGB order */
                 i32 alpha = 
-                    (((color & alpha_mask) >> alpha_shift) & 0xFF) << 24;
+			(((color & alpha_mask) >> alpha_shift) & 0xFF) << 24;
                 i32 red = (((color & red_mask) >> red_shift) & 0xFF) << 16;
                 i32 green = (((color & green_mask) >> green_shift) & 0xFF) << 8;
                 i32 blue = (((color & blue_mask) >> blue_shift) & 0xFF);
@@ -558,7 +555,7 @@ render_tile_map(i32 *restrict image_buffer, i32 *restrict tile_map,
                         i32 target_y = row*TILE_HEIGHT;
                         i32 target_x = column*TILE_WIDTH;
                         i32 tile_number = 
-                            tile_map[row*SCREEN_WIDTH_TILES + column];
+				tile_map[row*SCREEN_WIDTH_TILES + column];
 
                         display_bitmap_tile(image_buffer, 
                                             tile_set, 
