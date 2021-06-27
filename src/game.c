@@ -34,6 +34,7 @@ static void display_bitmap_tile(i32 *restrict image_buffer, BMPHeader *bmp,
 static size_t get_next_aligned_offset(size_t start_offset, size_t min_to_add, 
                                       size_t alignment);
 static size_t load_bitmap(const char file_path[], void *location);
+static void play_sound(Sound *game_sound);
 static void render_player(i32 *restrict image_buffer, 
                           PlayerState *restrict player_state);
 static void render_rectangle(i32 *image_buffer, i32 min_x, i32 max_x, i32 min_y,
@@ -127,6 +128,8 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
         PlayerState *player_state = partitions->player_state;
         WorldState *world_state = partitions->world_state;
         
+	play_sound(game_sound);
+
         if (world_state->screen_transitioning) {
                 transition_screens(image_buffer, player_state, world_state);
                 return;
@@ -134,36 +137,36 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
 
         /* Read input */
         switch (input->key_pressed) {
-                case UPKEY:
-                        player_state->keys = player_state->keys | UP_MASK;
-                        break;
-                case RIGHTKEY:
-                        player_state->keys = player_state->keys | RIGHT_MASK;
-                        break;
-                case DOWNKEY:
-                        player_state->keys = player_state->keys | DOWN_MASK;
-                        break;
-                case LEFTKEY:
-                        player_state->keys = player_state->keys | LEFT_MASK;
-                        break;
-                default:
-                        break;
+	case UPKEY:
+		player_state->keys = player_state->keys | UP_MASK;
+		break;
+	case RIGHTKEY:
+		player_state->keys = player_state->keys | RIGHT_MASK;
+		break;
+	case DOWNKEY:
+		player_state->keys = player_state->keys | DOWN_MASK;
+		break;
+	case LEFTKEY:
+		player_state->keys = player_state->keys | LEFT_MASK;
+		break;
+	default:
+		break;
         }
         switch (input->key_released) {
-                case UPKEY:
-                        player_state->keys = player_state->keys & (~UP_MASK);
-                        break;
-                case RIGHTKEY:
-                        player_state->keys = player_state->keys & (~RIGHT_MASK);
-                        break;
-                case DOWNKEY:
-                        player_state->keys = player_state->keys & (~DOWN_MASK);
-                        break;
-                case LEFTKEY:
-                        player_state->keys = player_state->keys & (~LEFT_MASK);
-                        break;
-                default:
-                        break;
+	case UPKEY:
+		player_state->keys = player_state->keys & (~UP_MASK);
+		break;
+	case RIGHTKEY:
+		player_state->keys = player_state->keys & (~RIGHT_MASK);
+		break;
+	case DOWNKEY:
+		player_state->keys = player_state->keys & (~DOWN_MASK);
+		break;
+	case LEFTKEY:
+		player_state->keys = player_state->keys & (~LEFT_MASK);
+		break;
+	default:
+		break;
         }
 
 
@@ -180,7 +183,7 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
                         world_state->transition_counter = SCREEN_HEIGHT_PIXELS;
                         world_state->transition_direction = UPDIR;
                         world_state->next_tile_map = 
-                            old_tile_map->top_connection;
+				old_tile_map->top_connection;
                         return;
                 } else if (tile_y == SCREEN_HEIGHT_TILES 
                            && old_tile_map->bottom_connection) {
@@ -188,14 +191,14 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
                         world_state->transition_counter = SCREEN_HEIGHT_PIXELS;
                         world_state->transition_direction = DOWNDIR;
                         world_state->next_tile_map = 
-                            old_tile_map->bottom_connection;
+				old_tile_map->bottom_connection;
                         return;
                 } else if (tile_x == -1 && old_tile_map->left_connection) {
                         world_state->screen_transitioning = true;
                         world_state->transition_counter = SCREEN_WIDTH_PIXELS;
                         world_state->transition_direction = LEFTDIR;
                         world_state->next_tile_map = 
-                            old_tile_map->left_connection;
+				old_tile_map->left_connection;
                         return;
                 } else if (tile_x == SCREEN_WIDTH_TILES 
                            && old_tile_map->right_connection) {
@@ -203,7 +206,7 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
                         world_state->transition_counter = SCREEN_WIDTH_PIXELS;
                         world_state->transition_direction = RIGHTDIR;
                         world_state->next_tile_map = 
-                            old_tile_map->right_connection;
+				old_tile_map->right_connection;
                         return;
                 }
 
@@ -261,25 +264,24 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
         /* If we're completing a movement command... */ 
         if (player_state->move_counter > 0) {
                 switch (player_state->move_direction) {
-                        case UPDIR:
-                                player_state->pixel_y -= player_state->speed;
-                                break;
-                        case RIGHTDIR:
-                                player_state->pixel_x += player_state->speed;
-                                break;
-                        case DOWNDIR:
-                                player_state->pixel_y += player_state->speed;
-                                break;
-                        case LEFTDIR:
-                                player_state->pixel_x -= player_state->speed;
-                                break;
-                        default:
-                                break;
+		case UPDIR:
+			player_state->pixel_y -= player_state->speed;
+			break;
+		case RIGHTDIR:
+			player_state->pixel_x += player_state->speed;
+			break;
+		case DOWNDIR:
+			player_state->pixel_y += player_state->speed;
+			break;
+		case LEFTDIR:
+			player_state->pixel_x -= player_state->speed;
+			break;
+		default:
+			break;
                 }
 
                 player_state->move_counter -= player_state->speed;
         }
-
 
         /* Render */
         render_tile_map(image_buffer, 
@@ -484,6 +486,17 @@ load_bitmap(const char file_path[], void *location)
 }
 
 static void
+play_sound(Sound *game_sound) {
+	if (game_sound->sound_initialized && game_sound->sound_playing) {
+		i32 rc = debug_platform_stream_audio("resources/test.wav", 
+				                     game_sound);
+		if (rc <= 0) {
+			game_sound->sound_playing = false;
+		}
+	}
+}
+
+static void
 render_player(i32 *restrict image_buffer, PlayerState *restrict player_state) 
 {
         i32 player_min_x = player_state->pixel_x - 16;
@@ -577,32 +590,32 @@ transition_screens(i32 *restrict image_buffer,
 
                 /* Put player in correct spot on new map */
                 switch (transition_direction) {
-                        case UPDIR:
-                                player_state->tile_y += SCREEN_HEIGHT_TILES;
-                                player_state->pixel_y = 
-                                    convert_tile_to_pixel(player_state->tile_y, 
-                                                          Y_DIMENSION);
-                                break;
-                        case DOWNDIR:
-                                player_state->tile_y -= SCREEN_HEIGHT_TILES;
-                                player_state->pixel_y = 
-                                    convert_tile_to_pixel(player_state->tile_y, 
-                                                          Y_DIMENSION);
-                                break;
-                        case RIGHTDIR:
-                                player_state->tile_x -= SCREEN_WIDTH_TILES;
-                                player_state->pixel_x = 
-                                    convert_tile_to_pixel(player_state->tile_x, 
-                                                          X_DIMENSION);
-                                break;
-                        case LEFTDIR:
-                                player_state->tile_x += SCREEN_WIDTH_TILES;
-                                player_state->pixel_x = 
-                                    convert_tile_to_pixel(player_state->tile_x, 
-                                                          X_DIMENSION);
-                                break;
-                        default:
-                                break;
+		case UPDIR:
+			player_state->tile_y += SCREEN_HEIGHT_TILES;
+			player_state->pixel_y = 
+				convert_tile_to_pixel(player_state->tile_y, 
+						      Y_DIMENSION);
+			break;
+		case DOWNDIR:
+			player_state->tile_y -= SCREEN_HEIGHT_TILES;
+			player_state->pixel_y = 
+				convert_tile_to_pixel(player_state->tile_y, 
+						      Y_DIMENSION);
+			break;
+		case RIGHTDIR:
+			player_state->tile_x -= SCREEN_WIDTH_TILES;
+			player_state->pixel_x = 
+				convert_tile_to_pixel(player_state->tile_x, 
+						      X_DIMENSION);
+			break;
+		case LEFTDIR:
+			player_state->tile_x += SCREEN_WIDTH_TILES;
+			player_state->pixel_x = 
+				convert_tile_to_pixel(player_state->tile_x, 
+						      X_DIMENSION);
+			break;
+		default:
+			break;
                 }
                 return;
         }
@@ -623,40 +636,32 @@ transition_screens(i32 *restrict image_buffer,
         i32 new_map_y_offset = 0;
         i32 new_map_x_offset = 0;
         switch (transition_direction) {
-                case UPDIR:
-                        old_map_y_offset = 
-                            SCREEN_HEIGHT_PIXELS 
-                            - world_state->transition_counter;
-                        new_map_y_offset = 
-                            old_map_y_offset - SCREEN_HEIGHT_PIXELS;
-                        player_state->pixel_y += transition_speed_y; 
-                        break;
-                case DOWNDIR:
-                        old_map_y_offset = 
-                            world_state->transition_counter 
-                            - SCREEN_HEIGHT_PIXELS;
-                        new_map_y_offset = 
-                            SCREEN_HEIGHT_PIXELS + old_map_y_offset;
-                        player_state->pixel_y -= transition_speed_y; 
-                        break;
-                case RIGHTDIR:
-                        old_map_x_offset = 
-                            world_state->transition_counter 
-                            - SCREEN_WIDTH_PIXELS;
-                        new_map_x_offset = 
-                            SCREEN_WIDTH_PIXELS + old_map_x_offset;
-                        player_state->pixel_x -= transition_speed_x; 
-                        break;
-                case LEFTDIR:
-                        old_map_x_offset = 
-                            SCREEN_WIDTH_PIXELS 
-                            - world_state->transition_counter;
-                        new_map_x_offset = 
-                            old_map_x_offset - SCREEN_WIDTH_PIXELS;
-                        player_state->pixel_x += transition_speed_x; 
-                        break;
-                default:
-                        break;
+	case UPDIR:
+		old_map_y_offset = 
+			SCREEN_HEIGHT_PIXELS - world_state->transition_counter;
+		new_map_y_offset = old_map_y_offset - SCREEN_HEIGHT_PIXELS;
+		player_state->pixel_y += transition_speed_y; 
+		break;
+	case DOWNDIR:
+		old_map_y_offset = 
+			world_state->transition_counter - SCREEN_HEIGHT_PIXELS;
+		new_map_y_offset = SCREEN_HEIGHT_PIXELS + old_map_y_offset;
+		player_state->pixel_y -= transition_speed_y; 
+		break;
+	case RIGHTDIR:
+		old_map_x_offset = 
+			world_state->transition_counter - SCREEN_WIDTH_PIXELS;
+		new_map_x_offset = SCREEN_WIDTH_PIXELS + old_map_x_offset;
+		player_state->pixel_x -= transition_speed_x; 
+		break;
+	case LEFTDIR:
+		old_map_x_offset = 
+			SCREEN_WIDTH_PIXELS - world_state->transition_counter;
+		new_map_x_offset = old_map_x_offset - SCREEN_WIDTH_PIXELS;
+		player_state->pixel_x += transition_speed_x; 
+		break;
+	default:
+		break;
         }
 
         /* TODO: Refactor this so that it doesn't require two tile map draws? */

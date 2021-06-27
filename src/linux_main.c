@@ -36,6 +36,8 @@ static void handle_key_press(XKeyEvent *restrict xkey, Input *restrict input);
 static void handle_key_release(XKeyEvent *restrict xkey, Input *restrict input);
 static i32 init_window(Display **display, Visual **visual, Window *window, 
                        GC *gc, XImage **ximage, char **image_buffer);
+static i32 init_sound(Sound *game_sound, snd_pcm_hw_params_t **params, 
+		      snd_pcm_t **handle, snd_pcm_uframes_t *frames);
 
 
 int 
@@ -59,11 +61,8 @@ main()
         game_sound.sound_playing = false;
         game_sound.sound_buffer = NULL;
 
-        i32 err = 0;
         snd_pcm_hw_params_t *params = NULL;
         snd_pcm_t *handle = NULL;
-        u32 sample_rate = 0;
-        i32 dir = 0;
         snd_pcm_uframes_t frames = 0;
 
 
@@ -74,64 +73,11 @@ main()
                 goto cleanup;
         }
 
-        /* ALSA initialization */
-        err = snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
-        if (err < 0) {
-                fprintf(stderr, "failed to open PCM device: %s\n", 
-                        snd_strerror(err));
-        } else {
-                snd_pcm_hw_params_alloca(&params);
-                snd_pcm_hw_params_any(handle, params);
+	rc = init_sound(&game_sound, &params, &handle, &frames);
 
-                /* Interleaved mode */
-                snd_pcm_hw_params_set_access(handle, params, 
-                                             SND_PCM_ACCESS_RW_INTERLEAVED);
-
-                /* Stereo PCM 16 bit little-endian */
-                snd_pcm_hw_params_set_format(handle, params, 
-                                             SND_PCM_FORMAT_S16_LE);
-
-                snd_pcm_hw_params_set_channels(handle, params, 2);
-                
-                sample_rate = 44100;
-                snd_pcm_hw_params_set_rate_near(handle, params, 
-                                                &sample_rate, &dir);
-
-                /* 
-                 * Amount of frames in 16.67 ms, 
-                 * plus a little extra for some leeway 
-                 */
-                frames = 742;
-
-                snd_pcm_hw_params_set_period_size_near(handle, params, 
-                                                       &frames, &dir);
-
-                err = snd_pcm_hw_params(handle, params);
-                if (err < 0) {
-                        fprintf(stderr, "failed to set hw parameters: %s\n", 
-                                snd_strerror(err));
-                } else {
-                        snd_pcm_hw_params_get_period_size(params, &frames, 
-                                                          &dir);
-                        /* 
-                         * Size of buffer should be one period 
-                         * with two channels and two bytes per sample.
-                         */
-                        game_sound.sound_buffer_size = frames * 2 * 2;
-                        game_sound.sound_buffer = 
-                            (char *) malloc(game_sound.sound_buffer_size);
-                        if (!game_sound.sound_buffer) {
-                                fprintf(stderr, 
-                                        "Failed to allocate sound buffer\n");
-                                exit_code = 1;
-                                goto cleanup;
-                        }
-                        memset(game_sound.sound_buffer, 0, 
-                               game_sound.sound_buffer_size);
-
-                        game_sound.sound_initialized = true;
-                }
-        }
+	if (rc >= 0) {
+		game_sound.sound_initialized = true;
+	}
 
         /* Setup memory pools for game to use */
         Memory memory;
@@ -179,6 +125,8 @@ main()
 
         game_initialize_memory(&memory, dt);
 
+	game_sound.sound_playing = true;
+
         /* 
          * MAIN LOOP 
          */
@@ -190,22 +138,22 @@ main()
                         XNextEvent(display, &event);
 
                         switch (event.type) {
-                                case ClientMessage:
-                                        should_close_window = true;
-                                        break;
-                                case KeyPress: {
-                                        handle_key_press(&event.xkey, &input);
-                                        break;
-                                }
-                                case KeyRelease: {
-                                        handle_key_release(&event.xkey, &input);
-                                        break;
-                                }
-                                case Expose:
-                                        XPutImage(display, window, gc, ximage,
-                                                  0, 0, 0, 0, WIN_WIDTH, 
-                                                  WIN_HEIGHT);
-                                        break;
+			case ClientMessage:
+				should_close_window = true;
+				break;
+			case KeyPress: {
+				handle_key_press(&event.xkey, &input);
+				break;
+			}
+			case KeyRelease: {
+				handle_key_release(&event.xkey, &input);
+				break;
+			}
+			case Expose:
+				XPutImage(display, window, gc, ximage,
+					  0, 0, 0, 0, WIN_WIDTH, 
+					  WIN_HEIGHT);
+				break;
                         }
                 }
 
@@ -213,10 +161,10 @@ main()
                                        (i32 *)image_buffer);
 
                 if (game_sound.sound_playing && game_sound.sound_initialized) {
-                        err = snd_pcm_writei(handle, game_sound.sound_buffer, 
-                                             frames);
-                        if (err < 0) {
-                                printf("%s\n", snd_strerror(err));
+                        rc = snd_pcm_writei(handle, game_sound.sound_buffer, 
+                                            frames);
+                        if (rc < 0) {
+                                printf("%s\n", snd_strerror(rc));
                                 snd_pcm_prepare(handle);
                         }
                 }
@@ -325,20 +273,20 @@ handle_key_press(XKeyEvent *restrict xkey, Input *restrict input)
 {
         input->key_released = NULLKEY;
         switch(xkey->keycode) {
-                case 111:
-                        input->key_pressed = UPKEY;
-                        break;
-                case 114:
-                        input->key_pressed = RIGHTKEY;
-                        break;
-                case 116:
-                        input->key_pressed = DOWNKEY;
-                        break;
-                case 113:
-                        input->key_pressed = LEFTKEY;
-                        break;
-                default:
-                    break;
+	case 111:
+		input->key_pressed = UPKEY;
+		break;
+	case 114:
+		input->key_pressed = RIGHTKEY;
+		break;
+	case 116:
+		input->key_pressed = DOWNKEY;
+		break;
+	case 113:
+		input->key_pressed = LEFTKEY;
+		break;
+	default:
+	    break;
         }
 }
 
@@ -347,21 +295,97 @@ handle_key_release(XKeyEvent *restrict xkey, Input *restrict input)
 {
         input->key_pressed = NULLKEY;
         switch(xkey->keycode) {
-                case 111:
-                        input->key_released = UPKEY;
-                        break;
-                case 114:
-                        input->key_released = RIGHTKEY;
-                        break;
-                case 116:
-                        input->key_released = DOWNKEY;
-                        break;
-                case 113:
-                        input->key_released = LEFTKEY;
-                        break;
-                default:
-                        break;
+	case 111:
+		input->key_released = UPKEY;
+		break;
+	case 114:
+		input->key_released = RIGHTKEY;
+		break;
+	case 116:
+		input->key_released = DOWNKEY;
+		break;
+	case 113:
+		input->key_released = LEFTKEY;
+		break;
+	default:
+		break;
         }
+}
+
+static i32
+init_sound(Sound *game_sound, snd_pcm_hw_params_t **params, snd_pcm_t **handle,
+	   snd_pcm_uframes_t *frames)
+{
+        i32 rc = snd_pcm_open(handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
+        if (rc < 0) {
+                fprintf(stderr, "failed to open PCM device: %s\n", 
+                        snd_strerror(rc));
+		return -1;
+        }
+
+	snd_pcm_hw_params_alloca(params);
+	snd_pcm_hw_params_any(*handle, *params);
+
+	/* Interleaved mode */
+	snd_pcm_hw_params_set_access(*handle, *params, 
+				     SND_PCM_ACCESS_RW_INTERLEAVED);
+
+	/* Stereo PCM 16 bit little-endian */
+	snd_pcm_hw_params_set_format(*handle, *params, 
+				     SND_PCM_FORMAT_S16_LE);
+
+	snd_pcm_hw_params_set_channels(*handle, *params, 2);
+	
+	i32 dir = 0;
+	u32 sample_rate = 44100;
+	snd_pcm_hw_params_set_rate_near(*handle, *params, 
+					&sample_rate, &dir);
+
+	/* 
+	 * Amount of frames in 16.67 ms, 
+	 * plus a little extra for some leeway 
+	 */
+	*frames = 742;
+
+	snd_pcm_hw_params_set_period_size_near(*handle, *params, 
+					       frames, &dir);
+
+	rc = snd_pcm_hw_params(*handle, *params);
+	if (rc < 0) {
+		fprintf(stderr, "failed to set hw parameters: %s\n", 
+			snd_strerror(rc));
+
+		return -1;
+	}
+
+	snd_pcm_hw_params_get_period_size(*params, frames, 
+					  &dir);
+	/* 
+	 * Size of buffer should be one period 
+	 * with two channels and two bytes per sample.
+	 */
+	game_sound->sound_buffer_size = *frames * 2 * 2;
+	game_sound->sound_buffer = 
+		malloc(game_sound->sound_buffer_size);
+	if (!game_sound->sound_buffer) {
+		fprintf(stderr, 
+			"Failed to allocate sound buffer\n");
+		return -1;
+	}
+	memset(game_sound->sound_buffer, 0, 
+	       game_sound->sound_buffer_size);
+
+	for (i32 i = 0; i < 10; i++) {
+		rc = snd_pcm_writei(*handle, 
+				    game_sound->sound_buffer, 
+				    *frames);
+		if (rc < 0) {
+			printf("%s\n", snd_strerror(rc));
+			snd_pcm_prepare(*handle);
+		}
+	}
+
+	return 0;
 }
 
 static 
