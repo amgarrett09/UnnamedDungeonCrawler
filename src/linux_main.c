@@ -38,33 +38,28 @@ static i32 init_window(Display **display, Visual **visual, Window *window,
                        GC *gc, XImage **ximage, char **image_buffer);
 static i32 init_sound(Sound *game_sound, snd_pcm_hw_params_t **params, 
 		      snd_pcm_t **handle, snd_pcm_uframes_t *frames);
-
+static i32 allocate_memory(Memory *memory);
 
 int 
 main() 
 {
+	/* Declarations for X11 */
+	Display *display = NULL;
+	Visual *visual = NULL;
+	Window window = {0};
+	XEvent event = {0};
+	GC gc = {0};
+	XImage *ximage = NULL;
+	char *image_buffer = NULL;
+
+	/* Declarations for ALSA */
+	Sound game_sound = {0};
+	snd_pcm_hw_params_t *params = NULL;
+	snd_pcm_t *handle = NULL;
+	snd_pcm_uframes_t frames = 0;
+
         int exit_code = 0;
         i32 rc = 0;
-
-        /* Declarations for X11 */
-        Display *display = NULL;
-        Visual *visual = NULL;
-        Window window = {0};
-        XEvent event = {0};
-        GC gc = {0};
-        XImage *ximage = NULL;
-        char *image_buffer = NULL;
-
-        /* Declarations for ALSA */
-        Sound game_sound = {0};
-        game_sound.sound_initialized = false;
-        game_sound.sound_playing = false;
-        game_sound.sound_buffer = NULL;
-
-        snd_pcm_hw_params_t *params = NULL;
-        snd_pcm_t *handle = NULL;
-        snd_pcm_uframes_t frames = 0;
-
 
         rc = init_window(&display, &visual, &window, &gc,
                          &ximage, &image_buffer);
@@ -73,40 +68,20 @@ main()
                 goto cleanup;
         }
 
+        Memory memory;
+	rc = allocate_memory(&memory);
+
+	if (rc < 0) {
+		exit_code = 1;
+		goto cleanup;
+	}
+
 	rc = init_sound(&game_sound, &params, &handle, &frames);
 
 	if (rc >= 0) {
 		game_sound.sound_initialized = true;
 	}
 
-        /* Setup memory pools for game to use */
-        Memory memory;
-
-        i32 perm_storage_size_bytes = 4*1024;
-        assert(perm_storage_size_bytes  % 64 == 0);
-        memory.perm_storage = aligned_alloc(64, perm_storage_size_bytes);
-        if (!memory.perm_storage) {
-                fprintf(stderr, "Failed to allocate perm storage for game\n");
-                exit_code = 1;
-                goto cleanup;
-        }
-        memory.perm_storage_size = perm_storage_size_bytes;
-        memset(memory.perm_storage, 0, memory.perm_storage_size);
-
-
-        i32 temp_storage_size_bytes = 40*1024*1024;
-        assert(temp_storage_size_bytes  % 64 == 0);
-        memory.temp_storage = aligned_alloc(64, temp_storage_size_bytes);
-        if (!memory.temp_storage) {
-                fprintf(stderr, "Failed to temp storage for game\n");
-                exit_code = 1;
-                goto cleanup;
-        }
-        memory.temp_storage_size = temp_storage_size_bytes;
-        memory.temp_next_load_offset = 0;
-        memset(memory.temp_storage, 0, memory.temp_storage_size);
-
-        memory.is_initialized = false;
 
         /* Setup input */
         Input input = { NULLKEY, NULLKEY };
@@ -266,6 +241,37 @@ debug_platform_load_asset(const char file_path[], void *memory_location)
         fclose(file);
 
         return result;
+}
+
+static i32 
+allocate_memory(Memory *memory)
+{
+
+        i32 perm_storage_size_bytes = 4*1024;
+        assert(perm_storage_size_bytes  % 64 == 0);
+        memory->perm_storage = aligned_alloc(64, perm_storage_size_bytes);
+        if (!memory->perm_storage) {
+                fprintf(stderr, "Failed to allocate perm storage for game\n");
+		return -1;
+        }
+        memory->perm_storage_size = perm_storage_size_bytes;
+        memset(memory->perm_storage, 0, memory->perm_storage_size);
+
+
+        i32 temp_storage_size_bytes = 40*1024*1024;
+        assert(temp_storage_size_bytes  % 64 == 0);
+        memory->temp_storage = aligned_alloc(64, temp_storage_size_bytes);
+        if (!memory->temp_storage) {
+                fprintf(stderr, "Failed to temp storage for game\n");
+		return -1;
+        }
+        memory->temp_storage_size = temp_storage_size_bytes;
+        memory->temp_next_load_offset = 0;
+        memset(memory->temp_storage, 0, memory->temp_storage_size);
+
+        memory->is_initialized = false;
+
+	return 0;
 }
 
 static void
