@@ -34,7 +34,13 @@ static void display_bitmap_tile(i32 *restrict image_buffer, BMPHeader *bmp,
 static size_t get_next_aligned_offset(size_t start_offset, size_t min_to_add, 
                                       size_t alignment);
 static size_t load_bitmap(const char file_path[], void *location);
+static void move_player(PlayerState *player_state);
+static bool need_screen_transition(WorldState *restrict world_state, 
+		                   PlayerState *restrict player_state);
+static void handle_player_collision(WorldState *restrict world_state, 
+		                    PlayerState *restrict player_state);
 static void play_sound(Sound *game_sound);
+static void read_input(Input *input, PlayerState *player_state);
 static void render_player(i32 *restrict image_buffer, 
                           PlayerState *restrict player_state);
 static void render_rectangle(i32 *image_buffer, i32 min_x, i32 max_x, i32 min_y,
@@ -54,11 +60,11 @@ game_initialize_memory(Memory *memory, i32 dt)
         MemoryPartitions *partitions = memory->perm_storage;
 
         partitions->player_state = 
-		get_next_aligned_offset((size_t)partitions, 
+		(PlayerState *)get_next_aligned_offset((size_t)partitions, 
                                         sizeof(MemoryPartitions), 
 					32);
         partitions->world_state = 
-		get_next_aligned_offset((size_t)partitions->player_state,
+		(WorldState *)get_next_aligned_offset((size_t)partitions->player_state,
                                         sizeof(PlayerState),
                                         32);
                                                    
@@ -131,155 +137,19 @@ game_update_and_render(Memory *restrict memory, Input *restrict input,
                 return;
         }
 
-        /* Read input */
-        switch (input->key_pressed) {
-	case UPKEY:
-		player_state->keys = player_state->keys | UP_MASK;
-		break;
-	case RIGHTKEY:
-		player_state->keys = player_state->keys | RIGHT_MASK;
-		break;
-	case DOWNKEY:
-		player_state->keys = player_state->keys | DOWN_MASK;
-		break;
-	case LEFTKEY:
-		player_state->keys = player_state->keys | LEFT_MASK;
-		break;
-	default:
-		break;
-        }
-        switch (input->key_released) {
-	case UPKEY:
-		player_state->keys = player_state->keys & (~UP_MASK);
-		break;
-	case RIGHTKEY:
-		player_state->keys = player_state->keys & (~RIGHT_MASK);
-		break;
-	case DOWNKEY:
-		player_state->keys = player_state->keys & (~DOWN_MASK);
-		break;
-	case LEFTKEY:
-		player_state->keys = player_state->keys & (~LEFT_MASK);
-		break;
-	default:
-		break;
-        }
+	read_input(input, player_state);
 
-
-        /* If we're at the end of a move... */
-        i32 keys = player_state->keys;
         if (player_state->move_counter <= 0) {
-                /* Check for screen transition */
-                TileMap *old_tile_map = world_state->current_tile_map;
-                i32 tile_x = player_state->tile_x;
-                i32 tile_y = player_state->tile_y;
+		if (need_screen_transition(world_state, player_state)) {
+			return;
+		}
 
-                if (tile_y == -1 && old_tile_map->top_connection) {
-                        world_state->screen_transitioning = true;
-                        world_state->transition_counter = SCREEN_HEIGHT_PIXELS;
-                        world_state->transition_direction = UPDIR;
-                        world_state->next_tile_map = 
-				old_tile_map->top_connection;
-                        return;
-                } else if (tile_y == SCREEN_HEIGHT_TILES 
-                           && old_tile_map->bottom_connection) {
-                        world_state->screen_transitioning = true;
-                        world_state->transition_counter = SCREEN_HEIGHT_PIXELS;
-                        world_state->transition_direction = DOWNDIR;
-                        world_state->next_tile_map = 
-				old_tile_map->bottom_connection;
-                        return;
-                } else if (tile_x == -1 && old_tile_map->left_connection) {
-                        world_state->screen_transitioning = true;
-                        world_state->transition_counter = SCREEN_WIDTH_PIXELS;
-                        world_state->transition_direction = LEFTDIR;
-                        world_state->next_tile_map = 
-				old_tile_map->left_connection;
-                        return;
-                } else if (tile_x == SCREEN_WIDTH_TILES 
-                           && old_tile_map->right_connection) {
-                        world_state->screen_transitioning = true;
-                        world_state->transition_counter = SCREEN_WIDTH_PIXELS;
-                        world_state->transition_direction = RIGHTDIR;
-                        world_state->next_tile_map = 
-				old_tile_map->right_connection;
-                        return;
-                }
+		handle_player_collision(world_state, player_state);
+        } else {
+		move_player(player_state);
+	}
 
-                /* Movement and collision detection */
-                i32 *current_collision_map = 
-                    (i32 *) world_state->current_tile_map->collision_map;
-                if (keys & UP_MASK || keys & DOWN_MASK) {
-                        bool is_up = !(keys & DOWN_MASK);
-                        i32 change = is_up ? -1 : 1;
-                        i32 new_tile_y = player_state->tile_y + change;
-                        i32 tile_x = player_state->tile_x;
 
-                        player_state->sprite_number = is_up ? 5 : 1;
-                        player_state->move_direction = is_up ? UPDIR : DOWNDIR;
-
-                        bool is_not_colliding = true;
-
-                        if (new_tile_y >= 0 && new_tile_y < SCREEN_HEIGHT_TILES
-                            && tile_x >= 0
-                            && tile_x < SCREEN_WIDTH_TILES) {
-                                is_not_colliding = !current_collision_map[
-					new_tile_y*SCREEN_WIDTH_TILES + tile_x];
-                        }
-
-                        if (is_not_colliding) {
-                                player_state->tile_y = new_tile_y;
-                                player_state->move_counter = TILE_HEIGHT;
-                        }
-                } else if (keys & RIGHT_MASK || keys & LEFT_MASK) {
-                        bool is_right = !(keys & LEFT_MASK);
-                        i32 change = is_right ? 1 : -1;
-                        i32 new_tile_x = player_state->tile_x + change;
-                        i32 tile_y = player_state->tile_y;
-
-                        player_state->sprite_number = 9;
-                        player_state->move_direction = 
-				is_right ? RIGHTDIR : LEFTDIR;
-
-                        bool is_not_colliding = true;
-
-                        if (new_tile_x >= 0 && new_tile_x < SCREEN_WIDTH_TILES 
-                            && tile_y >= 0 
-                            && tile_y < SCREEN_HEIGHT_TILES) {
-                                is_not_colliding = !current_collision_map[
-					tile_y*SCREEN_WIDTH_TILES + new_tile_x];
-                        }
-
-                        if (is_not_colliding) {
-                                player_state->tile_x = new_tile_x;
-                                player_state->move_counter = TILE_WIDTH;
-                        }
-                }
-        }
-
-        /* If we're completing a movement command... */ 
-        if (player_state->move_counter > 0) {
-                switch (player_state->move_direction) {
-		case UPDIR:
-			player_state->pixel_y -= player_state->speed;
-			break;
-		case RIGHTDIR:
-			player_state->pixel_x += player_state->speed;
-			break;
-		case DOWNDIR:
-			player_state->pixel_y += player_state->speed;
-			break;
-		case LEFTDIR:
-			player_state->pixel_x -= player_state->speed;
-			break;
-		default:
-			break;
-                }
-
-                player_state->move_counter -= player_state->speed;
-        }
-
-        /* Render */
         render_tile_map(image_buffer, 
                         (i32 *) world_state->current_tile_map->tile_map, 
                         world_state->tile_set, 0, 0);
@@ -429,6 +299,62 @@ get_next_aligned_offset(size_t start_offset, size_t min_to_add,
         }
 }
 
+static void 
+handle_player_collision(WorldState *restrict world_state, 
+		        PlayerState *restrict player_state)
+{
+	i32 *current_collision_map = 
+	    (i32 *) world_state->current_tile_map->collision_map;
+        i32 keys = player_state->keys;
+
+	if (keys & UP_MASK || keys & DOWN_MASK) {
+		bool is_up = !(keys & DOWN_MASK);
+		i32 change = is_up ? -1 : 1;
+		i32 new_tile_y = player_state->tile_y + change;
+		i32 tile_x = player_state->tile_x;
+
+		player_state->sprite_number = is_up ? 5 : 1;
+		player_state->move_direction = is_up ? UPDIR : DOWNDIR;
+
+		bool is_not_colliding = true;
+
+		if (new_tile_y >= 0 && new_tile_y < SCREEN_HEIGHT_TILES
+		    && tile_x >= 0
+		    && tile_x < SCREEN_WIDTH_TILES) {
+			is_not_colliding = !current_collision_map[
+				new_tile_y*SCREEN_WIDTH_TILES + tile_x];
+		}
+
+		if (is_not_colliding) {
+			player_state->tile_y = new_tile_y;
+			player_state->move_counter = TILE_HEIGHT;
+		}
+	} else if (keys & RIGHT_MASK || keys & LEFT_MASK) {
+		bool is_right = !(keys & LEFT_MASK);
+		i32 change = is_right ? 1 : -1;
+		i32 new_tile_x = player_state->tile_x + change;
+		i32 tile_y = player_state->tile_y;
+
+		player_state->sprite_number = 9;
+		player_state->move_direction = 
+			is_right ? RIGHTDIR : LEFTDIR;
+
+		bool is_not_colliding = true;
+
+		if (new_tile_x >= 0 && new_tile_x < SCREEN_WIDTH_TILES 
+		    && tile_y >= 0 
+		    && tile_y < SCREEN_HEIGHT_TILES) {
+			is_not_colliding = !current_collision_map[
+				tile_y*SCREEN_WIDTH_TILES + new_tile_x];
+		}
+
+		if (is_not_colliding) {
+			player_state->tile_x = new_tile_x;
+			player_state->move_counter = TILE_WIDTH;
+		}
+	}
+}
+
 static size_t 
 load_bitmap(const char file_path[], void *location) 
 {
@@ -482,6 +408,72 @@ load_bitmap(const char file_path[], void *location)
         return result;
 }
 
+static void 
+move_player(PlayerState *player_state)
+{
+	switch (player_state->move_direction) {
+	case UPDIR:
+		player_state->pixel_y -= player_state->speed;
+		break;
+	case RIGHTDIR:
+		player_state->pixel_x += player_state->speed;
+		break;
+	case DOWNDIR:
+		player_state->pixel_y += player_state->speed;
+		break;
+	case LEFTDIR:
+		player_state->pixel_x -= player_state->speed;
+		break;
+	default:
+		break;
+	}
+
+	player_state->move_counter -= player_state->speed;
+}
+
+static bool 
+need_screen_transition(WorldState *restrict world_state, 
+		       PlayerState *restrict player_state) 
+{
+	TileMap *old_tile_map = world_state->current_tile_map;
+	i32 tile_x = player_state->tile_x;
+	i32 tile_y = player_state->tile_y;
+
+	if (tile_y == -1 && old_tile_map->top_connection) {
+		world_state->screen_transitioning = true;
+		world_state->transition_counter = SCREEN_HEIGHT_PIXELS;
+		world_state->transition_direction = UPDIR;
+		world_state->next_tile_map = 
+			old_tile_map->top_connection;
+		return true;
+	} else if (tile_y == SCREEN_HEIGHT_TILES 
+		   && old_tile_map->bottom_connection) {
+		world_state->screen_transitioning = true;
+		world_state->transition_counter = SCREEN_HEIGHT_PIXELS;
+		world_state->transition_direction = DOWNDIR;
+		world_state->next_tile_map = 
+			old_tile_map->bottom_connection;
+		return true;
+	} else if (tile_x == -1 && old_tile_map->left_connection) {
+		world_state->screen_transitioning = true;
+		world_state->transition_counter = SCREEN_WIDTH_PIXELS;
+		world_state->transition_direction = LEFTDIR;
+		world_state->next_tile_map = 
+			old_tile_map->left_connection;
+		return true;
+	} else if (tile_x == SCREEN_WIDTH_TILES 
+		   && old_tile_map->right_connection) {
+		world_state->screen_transitioning = true;
+		world_state->transition_counter = SCREEN_WIDTH_PIXELS;
+		world_state->transition_direction = RIGHTDIR;
+		world_state->next_tile_map = 
+			old_tile_map->right_connection;
+		return true;
+	}
+
+	return false;
+}
+
 static void
 play_sound(Sound *game_sound) {
 	if (game_sound->sound_initialized && game_sound->sound_playing) {
@@ -491,6 +483,43 @@ play_sound(Sound *game_sound) {
 			game_sound->sound_playing = false;
 		}
 	}
+}
+
+static void 
+read_input(Input *input, PlayerState *player_state) 
+{
+        switch (input->key_pressed) {
+	case UPKEY:
+		player_state->keys = player_state->keys | UP_MASK;
+		break;
+	case RIGHTKEY:
+		player_state->keys = player_state->keys | RIGHT_MASK;
+		break;
+	case DOWNKEY:
+		player_state->keys = player_state->keys | DOWN_MASK;
+		break;
+	case LEFTKEY:
+		player_state->keys = player_state->keys | LEFT_MASK;
+		break;
+	default:
+		break;
+        }
+        switch (input->key_released) {
+	case UPKEY:
+		player_state->keys = player_state->keys & (~UP_MASK);
+		break;
+	case RIGHTKEY:
+		player_state->keys = player_state->keys & (~RIGHT_MASK);
+		break;
+	case DOWNKEY:
+		player_state->keys = player_state->keys & (~DOWN_MASK);
+		break;
+	case LEFTKEY:
+		player_state->keys = player_state->keys & (~LEFT_MASK);
+		break;
+	default:
+		break;
+        }
 }
 
 static void
