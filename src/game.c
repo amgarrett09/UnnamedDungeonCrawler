@@ -38,9 +38,9 @@ static void move_player(PlayerState *player_state);
 static bool need_screen_transition(WorldState *world_state, 
 		                   PlayerState *player_state);
 static void handle_player_collision(WorldState *world_state, 
-		                    PlayerState *player_state);
+		                    PlayerState *player_state,
+				    Input *input);
 static void play_sound(Sound *game_sound);
-static void read_input(Input *input, PlayerState *player_state);
 static void render_player(i32 *image_buffer, 
                           PlayerState *player_state);
 static void render_rectangle(i32 *image_buffer, i32 min_x, i32 max_x, i32 min_y,
@@ -137,14 +137,12 @@ game_update_and_render(Memory *memory, Input *input,
                 return;
         }
 
-	read_input(input, player_state);
-
         if (player_state->move_counter <= 0) {
 		if (need_screen_transition(world_state, player_state)) {
 			return;
 		}
 
-		handle_player_collision(world_state, player_state);
+		handle_player_collision(world_state, player_state, input);
         } else {
 		move_player(player_state);
 	}
@@ -301,14 +299,14 @@ get_next_aligned_offset(size_t start_offset, size_t min_to_add,
 
 static void 
 handle_player_collision(WorldState *world_state, 
-		        PlayerState *player_state)
+		        PlayerState *player_state, Input *input)
 {
 	i32 *current_collision_map = 
 	    (i32 *) world_state->current_tile_map->collision_map;
-        i32 keys = player_state->keys;
+	i32 keys = input->keys;
 
-	if (keys & UP_MASK || keys & DOWN_MASK) {
-		bool is_up = !(keys & DOWN_MASK);
+	if (keys & KEYMASK_UP || keys & KEYMASK_DOWN) {
+		bool is_up = !(keys & KEYMASK_DOWN);
 		i32 change = is_up ? -1 : 1;
 		i32 new_tile_y = player_state->tile_y + change;
 		i32 tile_x = player_state->tile_x;
@@ -329,8 +327,8 @@ handle_player_collision(WorldState *world_state,
 			player_state->tile_y = new_tile_y;
 			player_state->move_counter = TILE_HEIGHT;
 		}
-	} else if (keys & RIGHT_MASK || keys & LEFT_MASK) {
-		bool is_right = !(keys & LEFT_MASK);
+	} else if (keys & KEYMASK_RIGHT || keys & KEYMASK_LEFT) {
+		bool is_right = !(keys & KEYMASK_LEFT);
 		i32 change = is_right ? 1 : -1;
 		i32 new_tile_x = player_state->tile_x + change;
 		i32 tile_y = player_state->tile_y;
@@ -485,43 +483,6 @@ play_sound(Sound *game_sound) {
 	}
 }
 
-static void 
-read_input(Input *input, PlayerState *player_state) 
-{
-        switch (input->key_pressed) {
-	case UPKEY:
-		player_state->keys = player_state->keys | UP_MASK;
-		break;
-	case RIGHTKEY:
-		player_state->keys = player_state->keys | RIGHT_MASK;
-		break;
-	case DOWNKEY:
-		player_state->keys = player_state->keys | DOWN_MASK;
-		break;
-	case LEFTKEY:
-		player_state->keys = player_state->keys | LEFT_MASK;
-		break;
-	default:
-		break;
-        }
-        switch (input->key_released) {
-	case UPKEY:
-		player_state->keys = player_state->keys & (~UP_MASK);
-		break;
-	case RIGHTKEY:
-		player_state->keys = player_state->keys & (~RIGHT_MASK);
-		break;
-	case DOWNKEY:
-		player_state->keys = player_state->keys & (~DOWN_MASK);
-		break;
-	case LEFTKEY:
-		player_state->keys = player_state->keys & (~LEFT_MASK);
-		break;
-	default:
-		break;
-        }
-}
-
 static void
 render_player(i32 *image_buffer, PlayerState *player_state) 
 {
@@ -611,8 +572,6 @@ transition_screens(i32 *image_buffer,
         if (world_state->transition_counter <= 0) {
                 world_state->screen_transitioning = false;
                 world_state->current_tile_map = world_state->next_tile_map;
-
-                player_state->keys = 0;
 
                 /* Put player in correct spot on new map */
                 switch (transition_direction) {

@@ -82,7 +82,7 @@ main()
 		game_sound.sound_initialized = true;
 	}
 
-        Input input = { NULLKEY, NULLKEY };
+        Input input = {0};
 
         /* Setup timespecs to enforce a set framerate in main loop */
         i64 frametime = 16666667;
@@ -275,19 +275,18 @@ allocate_memory(Memory *memory)
 static void
 handle_key_press(XKeyEvent *xkey, Input *input)
 {
-        input->key_released = NULLKEY;
         switch(xkey->keycode) {
 	case 111:
-		input->key_pressed = UPKEY;
+		input->keys |= KEYMASK_UP;
 		break;
 	case 114:
-		input->key_pressed = RIGHTKEY;
+		input->keys |= KEYMASK_RIGHT;
 		break;
 	case 116:
-		input->key_pressed = DOWNKEY;
+		input->keys |= KEYMASK_DOWN;
 		break;
 	case 113:
-		input->key_pressed = LEFTKEY;
+		input->keys |= KEYMASK_LEFT;
 		break;
 	default:
 	    break;
@@ -297,19 +296,18 @@ handle_key_press(XKeyEvent *xkey, Input *input)
 static void
 handle_key_release(XKeyEvent *xkey, Input *input) 
 {
-        input->key_pressed = NULLKEY;
         switch(xkey->keycode) {
 	case 111:
-		input->key_released = UPKEY;
+		input->keys &= ~KEYMASK_UP;
 		break;
 	case 114:
-		input->key_released = RIGHTKEY;
+		input->keys &= ~KEYMASK_RIGHT;
 		break;
 	case 116:
-		input->key_released = DOWNKEY;
+		input->keys &= ~KEYMASK_DOWN;
 		break;
 	case 113:
-		input->key_released = LEFTKEY;
+		input->keys &= ~KEYMASK_LEFT;
 		break;
 	default:
 		break;

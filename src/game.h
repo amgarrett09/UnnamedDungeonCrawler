@@ -44,11 +44,6 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
-#define UP_MASK 0x01
-#define DOWN_MASK 0x02
-#define LEFT_MASK 0x04
-#define RIGHT_MASK 0x08
-
 #pragma pack(push, 1)
 typedef struct {
         u16 signature;
@@ -89,22 +84,27 @@ typedef enum {
 
 
 typedef enum {
-        NULLKEY,
-        UPKEY,
-        RIGHTKEY,
-        DOWNKEY,
-        LEFTKEY
+	KEY_NULL,
+        KEY_UP,
+        KEY_RIGHT,
+        KEY_DOWN,
+        KEY_LEFT
 } Key;
 
+typedef enum {
+	KEYMASK_UP = 0x01,
+	KEYMASK_RIGHT = 0x02,
+	KEYMASK_DOWN = 0x04,
+	KEYMASK_LEFT = 0x08
+} KeyMask;
+
 typedef struct {
-        Key key_pressed;         
-        Key key_released;
+	i32 keys;
 } Input;
 
 typedef struct {
         void *sprite_location;
         i32 sprite_number;
-        i32 keys;
         i32 pixel_x;
         i32 pixel_y;
         i32 tile_x;
