@@ -195,7 +195,7 @@ convert_tile_to_pixel(i32 tile_value, CoordDimension dimension)
 }
 
 static void
-display_bitmap_tile(i32 *image_buffer, BMPHeader *bmp, 
+display_bitmap_tile(i32 *restrict image_buffer, BMPHeader *restrict bmp, 
                     i32 tile_number, i32 target_x, i32 target_y,
                     i32 tile_width, i32 tile_height, bool mirrored) 
 {
