@@ -157,9 +157,9 @@ typedef struct {
 
 
 void game_initialize_memory(Memory *memory, i32 dt);
-void game_update_and_render(Memory *restrict memory, Input *restrict input, 
-                            Sound *restrict game_sound, 
-                            i32 *restrict image_buffer);
+void game_update_and_render(Memory *memory, Input *input, 
+                            Sound *game_sound, 
+                            i32 *image_buffer);
 
 /* 
  * These are defined by platform layer.

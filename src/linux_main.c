@@ -32,8 +32,8 @@
 #include "tile_maps.c"
 #include "game.c"
 
-static void handle_key_press(XKeyEvent *restrict xkey, Input *restrict input);
-static void handle_key_release(XKeyEvent *restrict xkey, Input *restrict input);
+static void handle_key_press(XKeyEvent *xkey, Input *input);
+static void handle_key_release(XKeyEvent *xkey, Input *input);
 static i32 init_window(Display **display, Visual **visual, Window *window, 
                        GC *gc, XImage **ximage, char **image_buffer);
 static i32 init_sound(Sound *game_sound, snd_pcm_hw_params_t **params, 
@@ -107,7 +107,7 @@ main()
         clock_gettime(CLOCK_REALTIME, &start);
 
         while (!should_close_window) {
-                if (XPending(display)) {
+                while (XPending(display)) {
                         XNextEvent(display, &event);
 
                         switch (event.type) {
@@ -273,7 +273,7 @@ allocate_memory(Memory *memory)
 }
 
 static void
-handle_key_press(XKeyEvent *restrict xkey, Input *restrict input)
+handle_key_press(XKeyEvent *xkey, Input *input)
 {
         input->key_released = NULLKEY;
         switch(xkey->keycode) {
@@ -295,7 +295,7 @@ handle_key_press(XKeyEvent *restrict xkey, Input *restrict input)
 }
 
 static void
-handle_key_release(XKeyEvent *restrict xkey, Input *restrict input) 
+handle_key_release(XKeyEvent *xkey, Input *input) 
 {
         input->key_pressed = NULLKEY;
         switch(xkey->keycode) {
