@@ -69,6 +69,12 @@ typedef struct {
 } BMPHeader;
 #pragma pack(pop)
 
+typedef struct {
+	i32 width;
+	i32 height;
+	char data[];
+} Bitmap;
+
 typedef enum {
         X_DIMENSION,
         Y_DIMENSION

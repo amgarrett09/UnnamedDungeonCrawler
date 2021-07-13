@@ -26,7 +26,7 @@ static const i32 SCREEN_WIDTH_PIXELS = SCREEN_WIDTH_TILES * TILE_WIDTH;
 
 static i32 bit_scan_forward_u(u32 number);
 static i32 convert_tile_to_pixel(i32 tile_value, CoordDimension dimension);
-static void display_bitmap_tile(i32 *image_buffer, BMPHeader *bmp, 
+static void display_bitmap_tile(i32 *image_buffer, Bitmap *bmp, 
                                 i32 tile_number, i32 target_x, i32 target_y,
                                 i32 tile_width, i32 tile_height, 
                                 bool mirrored);
@@ -193,20 +193,18 @@ convert_tile_to_pixel(i32 tile_value, CoordDimension dimension)
 }
 
 static void
-display_bitmap_tile(i32 *restrict image_buffer, BMPHeader *restrict bmp, 
+display_bitmap_tile(i32 *restrict image_buffer, Bitmap *restrict bmp, 
                     i32 tile_number, i32 target_x, i32 target_y,
                     i32 tile_width, i32 tile_height, bool mirrored) 
 {
-        u32 image_offset = bmp->image_offset;
-        i32 bmp_width = bmp->image_width;
-        i32 bmp_height = bmp->image_height;
+        i32 bmp_width = bmp->width;
+        i32 bmp_height = bmp->height;
 
         /* Calculate starting x and y position in bmp based on tile number */
         i32 source_x = (tile_number * tile_width) % bmp_width;
         i32 source_y = (tile_number / (bmp_width / tile_width)) * tile_height; 
 
-        char *image_start = ((char *) bmp) + image_offset;
-        i32 *image = (i32 *) image_start;
+        i32 *image = (i32 *)bmp->data;
 
         /* BMP pixels are arranged bottom to top */
         i32 bmp_row_start = (bmp_height - 1) * bmp_width;
@@ -362,19 +360,16 @@ load_bitmap(const char file_path[], void *location)
                 return 0;
         }
 
-        BMPHeader *bmp = (BMPHeader *) location;
+        BMPHeader *header = (BMPHeader *) location;
 
-        /* Put an accurate file size in the header */
-        bmp->file_size = (u32) result;
+        u32 image_offset = header->image_offset;
+        i32 image_width = header->image_width;
+        i32 image_height = header->image_height;
 
-        u32 image_offset = bmp->image_offset;
-        i32 image_width = bmp->image_width;
-        i32 image_height = bmp->image_height;
-
-        u32 red_mask = bmp->red_mask;
-        u32 green_mask = bmp->green_mask;
-        u32 blue_mask = bmp->blue_mask;
-        u32 alpha_mask = bmp->alpha_mask;
+        u32 red_mask = header->red_mask;
+        u32 green_mask = header->green_mask;
+        u32 blue_mask = header->blue_mask;
+        u32 alpha_mask = header->alpha_mask;
 
         /* How many bits we need to shift to get values to start at bit 0*/
         i32 red_shift = bit_scan_forward_u(red_mask);
@@ -387,8 +382,15 @@ load_bitmap(const char file_path[], void *location)
         blue_shift = blue_shift < 0 ? 0 : blue_shift;
         alpha_shift = alpha_shift < 0 ? 0 : alpha_shift;
 
-        char *image_start = ((char *) bmp) + image_offset;
-        i32 *image = (i32 *) image_start;
+	/* Discard header and copy image data to location */
+        char *image_data = ((char *) header) + image_offset;
+	Bitmap *bmp = location;
+	bmp->width = image_width;
+	bmp->height = image_height;
+
+	memcpy(bmp->data, image_data, image_width*4*image_height*4);
+
+        i32 *image = (i32 *)bmp->data;
 
         for (i32 i = 0; i < image_width*image_height; i++) {
                 i32 color = image[i]; 
@@ -403,7 +405,8 @@ load_bitmap(const char file_path[], void *location)
                 image[i] = alpha | red | green | blue;
         }
 
-        return result;
+	/*Return size of bitmap with image data in it*/
+        return image_width*4*image_height*4 + sizeof(Bitmap);
 }
 
 static void 
