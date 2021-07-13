@@ -388,7 +388,7 @@ load_bitmap(const char file_path[], void *location)
 	bmp->width = image_width;
 	bmp->height = image_height;
 
-	memcpy(bmp->data, image_data, image_width*4*image_height*4);
+	memcpy(bmp->data, image_data, image_width*image_height*4);
 
         i32 *image = (i32 *)bmp->data;
 
@@ -406,7 +406,7 @@ load_bitmap(const char file_path[], void *location)
         }
 
 	/*Return size of bitmap with image data in it*/
-        return image_width*4*image_height*4 + sizeof(Bitmap);
+        return image_width*image_height*4 + sizeof(Bitmap);
 }
 
 static void 
