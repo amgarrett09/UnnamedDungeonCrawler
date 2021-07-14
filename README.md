@@ -54,13 +54,15 @@ To compile on Linux, just make sure you have ALSA and X11. ALSA is in any
 Linux kernel version newer than 2004. X11 is included in virtually every Linux
 distribution. You may need to install some development packages for X11 if you
 encounter compile errors, but a quick search on your favorite search engine
-will tell you how.
+will tell you how. You'll also need clang if you want to use the build script
+as-is.
 
 One you have the dependencies (which you most likely already do), simply run
 
 `./linux_build.sh`
 
 in the main project folder.
+
 
 To run the game with assets you will also needs assets stored in a directory
 in the main project folder called `assets`.
