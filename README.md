@@ -10,10 +10,10 @@ tactics elements. Beyond that, things are very much in an early exploratory
 phase.
 
 Things that are working:
-	* Software-based tile map rendering
-	* Rudimentary player movement and collision
-	* Very basic asset loading
-	* Sound playback (though at the current stage it's fragile and bad -- only used for debug)
+- Software-based tile map rendering
+- Rudimentary player movement and collision
+- Very basic asset loading
+- Sound playback (though at the current stage it's fragile and bad -- only used for debug)
 
 Before I make more progress, I want to write a tile map editor to be able to
 make maps easily, which would in turn make testing new additions to the engine
