@@ -46,6 +46,25 @@ difficult to understand, separating the platform layer from the actual game
 layer is something that makes a lot of sense to do, so I try to keep them
 as "decoupled" as possible to make sure writing ports stays easy.
 
+## Compiling
+
+Currently there's only a Linux version of this engine/game. 
+
+To compile on Linux, just make sure you have ALSA and X11. ALSA is in any
+Linux kernel version newer than 2004. X11 is included in virtually every Linux
+distribution. You may need to install some development packages for X11 if you
+encounter compile errors, but a quick search on your favorite search engine
+will tell you how.
+
+One you have the dependencies (which you most likely already do), simply run
+
+`./linux_build.sh`
+
+in the main project folder.
+
+To run the game with assets you will also needs assets stored in a directory
+in the main project folder called `assets`.
+
 ## License
 
 Copyright (C) 2021 Alex Garrett
