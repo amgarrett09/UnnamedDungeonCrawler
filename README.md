@@ -65,7 +65,7 @@ in the main project folder.
 
 
 To run the game with assets you will also needs assets stored in a directory
-in the main project folder called `assets`.
+in the main project folder called `resources`.
 
 ## License
 
