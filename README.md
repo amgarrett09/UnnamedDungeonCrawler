@@ -50,25 +50,26 @@ as "decoupled" as possible to make sure writing ports stays easy.
 
 Currently there's only a Linux version of this engine/game. 
 
-To compile on Linux, just make sure you have ALSA and X11. ALSA is in pretty 
-much any Linux kernel version since 2004. X11 is included in virtually every 
-Linux distribution. 
+To compile and run on Linux, just make sure you have ALSA and X11. ALSA is in 
+pretty much any Linux kernel version since 2004. X11 is included in virtually 
+every Linux distribution. 
 
-You may need to install some development packages for X11 and ALSA though.
+You may need to install some development packages to get access to the X11
+and ALSA header files though.
 
 On Debian
 ```
-	sudo apt install libx11-dev
-	sudo apt install libxt-dev
-	sudo apt install libasound2-dev
+sudo apt install libx11-dev
+sudo apt install libxt-dev
+sudo apt install libasound2-dev
 ```
 
-One you have the dependencie, simply run
+One you have the dependencies, simply run
 
 `./linux_build.sh`
 
-in the main project folder.
-
+in the main project folder. The executable can then be found in the `build` 
+directory.
 
 To run the game with assets you will also needs assets stored in a directory
 in the main project folder called `resources`.
