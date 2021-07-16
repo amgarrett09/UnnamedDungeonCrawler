@@ -35,8 +35,8 @@ static size_t get_next_aligned_offset(size_t start_offset, size_t min_to_add,
                                       size_t alignment);
 static size_t load_bitmap(const char file_path[], void *location);
 static void move_player(PlayerState *player_state);
-static bool need_screen_transition(WorldState *world_state, 
-		                   PlayerState *player_state);
+static bool check_and_prep_screen_transition(WorldState *world_state, 
+						PlayerState *player_state);
 static void handle_player_collision(WorldState *world_state, 
 		                    PlayerState *player_state,
 				    Input *input);
@@ -138,7 +138,7 @@ game_update_and_render(Memory *memory, Input *input,
         }
 
         if (player_state->move_counter <= 0) {
-		if (need_screen_transition(world_state, player_state)) {
+		if (check_and_prep_screen_transition(world_state, player_state)) {
 			return;
 		}
 
@@ -434,8 +434,8 @@ move_player(PlayerState *player_state)
 }
 
 static bool 
-need_screen_transition(WorldState *world_state, 
-		       PlayerState *player_state) 
+check_and_prep_screen_transition(WorldState *world_state, 
+		                 PlayerState *player_state) 
 {
 	TileMap *old_tile_map = world_state->current_tile_map;
 	i32 tile_x = player_state->tile_x;
