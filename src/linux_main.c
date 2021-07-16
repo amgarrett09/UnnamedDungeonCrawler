@@ -25,6 +25,7 @@
 #include <alsa/asoundlib.h>
 
 #include <stdint.h>
+#include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -214,6 +215,8 @@ debug_platform_stream_audio(const char file_path[], Sound *game_sound)
         return (i32) result;
 }
 
+
+// TODO: maybe pass an expected size parameter and fail if file is larger
 size_t 
 debug_platform_load_asset(const char file_path[], void *memory_location) 
 {

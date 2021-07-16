@@ -16,7 +16,7 @@
  */
 
 /* 
- * Dependendencies: game.h, tile_maps.c
+ * Dependendencies: <string.h>, game.h, tile_maps.c
  */
 
 
@@ -206,7 +206,7 @@ display_bitmap_tile(i32 *restrict image_buffer, Bitmap *restrict bmp,
 
         i32 *image = (i32 *)bmp->data;
 
-        /* BMP pixels are arranged bottom to top */
+        /* BMP pixels are arranged bottom to top so start at bottom */
         i32 bmp_row_start = (bmp_height - 1) * bmp_width;
         bmp_row_start -= source_y * bmp_width;
 
@@ -351,6 +351,7 @@ handle_player_collision(WorldState *world_state,
 	}
 }
 
+// TODO: maybe pass an expected size parameter and fail if file is larger
 static size_t 
 load_bitmap(const char file_path[], void *location) 
 {
