@@ -50,14 +50,20 @@ as "decoupled" as possible to make sure writing ports stays easy.
 
 Currently there's only a Linux version of this engine/game. 
 
-To compile on Linux, just make sure you have ALSA and X11. ALSA is in any
-Linux kernel version newer than 2004. X11 is included in virtually every Linux
-distribution. You may need to install some development packages for X11 if you
-encounter compile errors, but a quick search on your favorite search engine
-will tell you how. You'll also need clang if you want to use the build script
-as-is.
+To compile on Linux, just make sure you have ALSA and X11. ALSA is in pretty 
+much any Linux kernel version since 2004. X11 is included in virtually every 
+Linux distribution. 
 
-One you have the dependencies (which you most likely already do), simply run
+You may need to install some development packages for X11 and ALSA though.
+
+On Debian
+```
+	sudo apt install libx11-dev
+	sudo apt install libxt-dev
+	sudo apt install libasound2-dev
+```
+
+One you have the dependencie, simply run
 
 `./linux_build.sh`
 
