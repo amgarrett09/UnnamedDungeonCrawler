@@ -1,21 +1,21 @@
-/* 
+/*
  * Copyright (C) 2021 Alex Garrett
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* 
+/*
  * Dependencies: <stdint.h>, <stdbool.h>
  */
 
@@ -31,7 +31,7 @@
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 #define MEMBER_SIZE(type, member) sizeof(((type *)0)->member)
-#define MEMBER_ARRAY_SIZE(type, member, array_data_type) \
+#define MEMBER_ARRAY_SIZE(type, member, array_data_type)                       \
         (sizeof(((type *)0)->member) / sizeof(array_data_type))
 
 typedef int8_t  i8;
@@ -70,59 +70,43 @@ typedef struct {
 #pragma pack(pop)
 
 typedef struct {
-	i32 width;
-	i32 height;
-	char data[];
+        i32  width;
+        i32  height;
+        char data[];
 } Bitmap;
 
-typedef enum {
-        X_DIMENSION,
-        Y_DIMENSION
-} CoordDimension;
+typedef enum { X_DIMENSION, Y_DIMENSION } CoordDimension;
+
+typedef enum { NULLDIR, UPDIR, RIGHTDIR, DOWNDIR, LEFTDIR } Direction;
+
+typedef enum { KEY_NULL, KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT } Key;
 
 typedef enum {
-        NULLDIR,
-        UPDIR,
-        RIGHTDIR,
-        DOWNDIR,
-        LEFTDIR
-} Direction;
-
-
-typedef enum {
-	KEY_NULL,
-        KEY_UP,
-        KEY_RIGHT,
-        KEY_DOWN,
-        KEY_LEFT
-} Key;
-
-typedef enum {
-	KEYMASK_UP = 0x01,
-	KEYMASK_RIGHT = 0x02,
-	KEYMASK_DOWN = 0x04,
-	KEYMASK_LEFT = 0x08
+        KEYMASK_UP    = 0x01,
+        KEYMASK_RIGHT = 0x02,
+        KEYMASK_DOWN  = 0x04,
+        KEYMASK_LEFT  = 0x08
 } KeyMask;
 
 typedef struct {
-	i32 keys;
+        i32 keys;
 } Input;
 
 typedef struct {
-        void *sprite_location;
-        i32 sprite_number;
-        i32 pixel_x;
-        i32 pixel_y;
-        i32 tile_x;
-        i32 tile_y;
-        i32 move_counter;
+        void *    sprite_location;
+        i32       sprite_number;
+        i32       pixel_x;
+        i32       pixel_y;
+        i32       tile_x;
+        i32       tile_y;
+        i32       move_counter;
         Direction move_direction;
-        i32 speed;
+        i32       speed;
 } PlayerState;
 
 typedef struct TileMap {
-        i32 collision_map[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
-        i32 tile_map[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
+        i32             collision_map[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
+        i32             tile_map[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
         struct TileMap *top_connection;
         struct TileMap *right_connection;
         struct TileMap *bottom_connection;
@@ -130,48 +114,45 @@ typedef struct TileMap {
 } TileMap;
 
 typedef struct {
-        TileMap *current_tile_map;
-        TileMap *next_tile_map;
-        void *tile_set;
-        bool screen_transitioning;
+        TileMap * current_tile_map;
+        TileMap * next_tile_map;
+        void *    tile_set;
+        bool      screen_transitioning;
         Direction transition_direction;
-        i32 transition_counter;
+        i32       transition_counter;
 } WorldState;
 
 typedef struct {
-        void *perm_storage;
+        void * perm_storage;
         size_t perm_storage_size;
-        void *temp_storage;
+        void * temp_storage;
         size_t temp_storage_size;
         size_t temp_next_load_offset;
-        bool is_initialized;
+        bool   is_initialized;
 } Memory;
 
 typedef struct {
-        PlayerState *player_state;    
-        WorldState *world_state;
-        TileMap *tile_maps;
+        PlayerState *player_state;
+        WorldState * world_state;
+        TileMap *    tile_maps;
 } MemoryPartitions;
 
 typedef struct {
-        char *sound_buffer;
-        FILE *stream;
+        char * sound_buffer;
+        FILE * stream;
         size_t sound_buffer_size;
-        bool sound_initialized;
-        bool sound_playing;
+        bool   sound_initialized;
+        bool   sound_playing;
 } Sound;
 
-
 void game_initialize_memory(Memory *memory, i32 dt);
-void game_update_and_render(Memory *memory, Input *input, 
-                            Sound *game_sound, 
+void game_update_and_render(Memory *memory, Input *input, Sound *game_sound,
                             i32 *image_buffer);
 
-/* 
+/*
  * These are defined by platform layer.
- * We'll probably use a different solution later on. 
+ * We'll probably use a different solution later on.
  */
 i32 debug_platform_stream_audio(const char file_path[], Sound *game_sound);
 
 size_t debug_platform_load_asset(const char file_path[], void *memory_location);
-

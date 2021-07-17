@@ -1,0 +1,14 @@
+﻿---
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
+AlignOperands: 'false'
+AlignTrailingComments: true
+BreakBeforeBraces: Linux
+ColumnLimit: 80
+IndentWidth: 8
+PointerAlignment: Right
+SpaceAfterCStyleCast: false
+SpacesInParentheses: false
+TabWidth: 8
+
