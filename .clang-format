@@ -6,9 +6,12 @@ AlignOperands: 'false'
 AlignTrailingComments: true
 BreakBeforeBraces: Linux
 ColumnLimit: 80
+ContinuationIndentWidth: 8
 IndentWidth: 8
+IndentCaseLabels: false
 PointerAlignment: Right
 SpaceAfterCStyleCast: false
 SpacesInParentheses: false
 TabWidth: 8
+UseTab: ForContinuationAndIndentation
 
