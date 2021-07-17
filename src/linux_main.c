@@ -29,9 +29,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "game.c"
 #include "game.h"
 #include "tile_maps.c"
+#include "game.c"
 
 static void handle_key_press(XKeyEvent *xkey, Input *input);
 static void handle_key_release(XKeyEvent *xkey, Input *input);
