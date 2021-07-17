@@ -59,9 +59,7 @@ and ALSA header files though.
 
 On Debian
 ```
-sudo apt install libx11-dev
-sudo apt install libxt-dev
-sudo apt install libasound2-dev
+sudo apt install libx11-dev libxt-dev libasound2-dev
 ```
 
 One you have the dependencies, simply run
