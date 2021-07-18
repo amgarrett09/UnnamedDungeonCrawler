@@ -48,15 +48,8 @@ static void transition_screens(i32 *image_buffer, PlayerState *player_state,
 
 void game_initialize_memory(Memory *memory, i32 dt)
 {
-	MemoryPartitions *partitions = memory->perm_storage;
-
-	partitions->player_state = (PlayerState *)get_next_aligned_offset(
-		(size_t)partitions, sizeof(MemoryPartitions), 32);
-	partitions->world_state = (WorldState *)get_next_aligned_offset(
-		(size_t)partitions->player_state, sizeof(PlayerState), 32);
-
-	PlayerState *player_state = partitions->player_state;
-	WorldState * world_state  = partitions->world_state;
+	PlayerState *player_state = &memory->player_state;
+	WorldState * world_state  = &memory->world_state;
 
 	size_t sprite_load_result = load_bitmap("resources/player_sprites.bmp",
 						memory->temp_storage);
@@ -109,9 +102,8 @@ void game_initialize_memory(Memory *memory, i32 dt)
 void game_update_and_render(Memory *memory, Input *input, Sound *game_sound,
 			    i32 *image_buffer)
 {
-	MemoryPartitions *partitions   = memory->perm_storage;
-	PlayerState *     player_state = partitions->player_state;
-	WorldState *      world_state  = partitions->world_state;
+	PlayerState *player_state = &memory->player_state;
+	WorldState * world_state  = &memory->world_state;
 
 	play_sound(game_sound);
 

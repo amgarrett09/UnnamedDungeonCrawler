@@ -41,6 +41,8 @@ static i32  init_sound(Sound *game_sound, snd_pcm_hw_params_t **params,
 		       snd_pcm_t **handle, snd_pcm_uframes_t *frames);
 static i32  allocate_memory(Memory *memory);
 
+static Memory GAME_MEMORY = {};
+
 int main()
 {
 	/* Declarations for X11 */
@@ -68,8 +70,7 @@ int main()
 		goto cleanup;
 	}
 
-	Memory memory;
-	rc = allocate_memory(&memory);
+	rc = allocate_memory(&GAME_MEMORY);
 
 	if (rc < 0) {
 		exit_code = 1;
@@ -95,7 +96,7 @@ int main()
 	 */
 	i32 dt = 16;
 
-	game_initialize_memory(&memory, dt);
+	game_initialize_memory(&GAME_MEMORY, dt);
 
 	game_sound.sound_playing = true;
 
@@ -128,7 +129,7 @@ int main()
 			}
 		}
 
-		game_update_and_render(&memory, &input, &game_sound,
+		game_update_and_render(&GAME_MEMORY, &input, &game_sound,
 				       (i32 *)image_buffer);
 
 		if (game_sound.sound_playing && game_sound.sound_initialized) {
@@ -178,12 +179,8 @@ cleanup:
 		fclose(game_sound.stream);
 	}
 
-	if (memory.perm_storage) {
-		free(memory.perm_storage);
-	}
-
-	if (memory.temp_storage) {
-		free(memory.temp_storage);
+	if (GAME_MEMORY.temp_storage) {
+		free(GAME_MEMORY.temp_storage);
 	}
 
 	return exit_code;
@@ -241,17 +238,6 @@ size_t debug_platform_load_asset(const char file_path[], void *memory_location)
 
 static i32 allocate_memory(Memory *memory)
 {
-
-	i32 perm_storage_size_bytes = 4 * 1024;
-	assert(perm_storage_size_bytes % 64 == 0);
-	memory->perm_storage = aligned_alloc(64, perm_storage_size_bytes);
-	if (!memory->perm_storage) {
-		fprintf(stderr, "Failed to allocate perm storage for game\n");
-		return -1;
-	}
-	memory->perm_storage_size = perm_storage_size_bytes;
-	memset(memory->perm_storage, 0, memory->perm_storage_size);
-
 	i32 temp_storage_size_bytes = 40 * 1024 * 1024;
 	assert(temp_storage_size_bytes % 64 == 0);
 	memory->temp_storage = aligned_alloc(64, temp_storage_size_bytes);
