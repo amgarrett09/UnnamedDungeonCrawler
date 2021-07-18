@@ -35,30 +35,30 @@
 
 static void handle_key_press(XKeyEvent *xkey, Input *input);
 static void handle_key_release(XKeyEvent *xkey, Input *input);
-static i32  init_window(Display **display, Visual **visual, Window *window,
-			GC *gc, XImage **ximage, char **image_buffer);
-static i32  init_sound(Sound *game_sound, snd_pcm_hw_params_t **params,
-		       snd_pcm_t **handle, snd_pcm_uframes_t *frames);
-static i32  allocate_memory(Memory *memory);
+static i32 init_window(Display **display, Visual **visual, Window *window,
+		       GC *gc, XImage **ximage, char **image_buffer);
+static i32 init_sound(Sound *game_sound, snd_pcm_hw_params_t **params,
+		      snd_pcm_t **handle, snd_pcm_uframes_t *frames);
+static i32 allocate_memory(Memory *memory);
 
 static Memory GAME_MEMORY = {};
 
 int main()
 {
 	/* Declarations for X11 */
-	Display *display      = NULL;
-	Visual * visual       = NULL;
-	Window   window       = {0};
-	XEvent   event        = {0};
-	GC       gc           = {0};
-	XImage * ximage       = NULL;
-	char *   image_buffer = NULL;
+	Display *display   = NULL;
+	Visual *visual     = NULL;
+	Window window      = {0};
+	XEvent event       = {0};
+	GC gc              = {0};
+	XImage *ximage     = NULL;
+	char *image_buffer = NULL;
 
 	/* Declarations for ALSA */
-	Sound                game_sound = {0};
-	snd_pcm_hw_params_t *params     = NULL;
-	snd_pcm_t *          handle     = NULL;
-	snd_pcm_uframes_t    frames     = 0;
+	Sound game_sound            = {0};
+	snd_pcm_hw_params_t *params = NULL;
+	snd_pcm_t *handle           = NULL;
+	snd_pcm_uframes_t frames    = 0;
 
 	int exit_code = 0;
 	i32 rc        = 0;
@@ -86,9 +86,9 @@ int main()
 	Input input = {0};
 
 	/* Setup timespecs to enforce a set framerate in main loop */
-	i64             frametime = 16666667;
+	i64 frametime = 16666667;
 	struct timespec start, end, sleeptime;
-	i64             delta;
+	i64 delta;
 
 	/*
 	 * Approx. target time in ms between frames, used for calculations.

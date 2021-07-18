@@ -29,12 +29,12 @@
 #define SCREEN_WIDTH_TILES 40
 #define SCREEN_HEIGHT_TILES 20
 
-typedef int8_t  i8;
+typedef int8_t i8;
 typedef int16_t i16;
 typedef int32_t i32;
 typedef int64_t i64;
 
-typedef uint8_t  u8;
+typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
@@ -65,8 +65,8 @@ typedef struct {
 #pragma pack(pop)
 
 typedef struct {
-	i32  width;
-	i32  height;
+	i32 width;
+	i32 height;
 	char data[];
 } Bitmap;
 
@@ -88,20 +88,20 @@ typedef struct {
 } Input;
 
 typedef struct {
-	void *    sprite_location;
-	i32       sprite_number;
-	i32       pixel_x;
-	i32       pixel_y;
-	i32       tile_x;
-	i32       tile_y;
-	i32       move_counter;
+	void *sprite_location;
+	i32 sprite_number;
+	i32 pixel_x;
+	i32 pixel_y;
+	i32 tile_x;
+	i32 tile_y;
+	i32 move_counter;
 	Direction move_direction;
-	i32       speed;
+	i32 speed;
 } PlayerState;
 
 typedef struct TileMap {
-	i32             collision_map[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
-	i32             tile_map[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
+	i32 collision_map[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
+	i32 tile_map[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
 	struct TileMap *top_connection;
 	struct TileMap *right_connection;
 	struct TileMap *bottom_connection;
@@ -109,35 +109,35 @@ typedef struct TileMap {
 } TileMap;
 
 typedef struct {
-	TileMap * current_tile_map;
-	TileMap * next_tile_map;
-	void *    tile_set;
-	bool      screen_transitioning;
+	TileMap *current_tile_map;
+	TileMap *next_tile_map;
+	void *tile_set;
+	bool screen_transitioning;
 	Direction transition_direction;
-	i32       transition_counter;
+	i32 transition_counter;
 } WorldState;
 
 typedef struct {
 	PlayerState player_state;
-	WorldState  world_state;
-	void *      temp_storage;
-	size_t      temp_storage_size;
-	size_t      temp_next_load_offset;
-	bool        is_initialized;
+	WorldState world_state;
+	void *temp_storage;
+	size_t temp_storage_size;
+	size_t temp_next_load_offset;
+	bool is_initialized;
 } Memory;
 
 typedef struct {
 	PlayerState *player_state;
-	WorldState * world_state;
-	TileMap *    tile_maps;
+	WorldState *world_state;
+	TileMap *tile_maps;
 } MemoryPartitions;
 
 typedef struct {
-	char * sound_buffer;
-	FILE * stream;
+	char *sound_buffer;
+	FILE *stream;
 	size_t sound_buffer_size;
-	bool   sound_initialized;
-	bool   sound_playing;
+	bool sound_initialized;
+	bool sound_playing;
 } Sound;
 
 void game_initialize_memory(Memory *memory, i32 dt);

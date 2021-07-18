@@ -22,8 +22,8 @@
 static const i32 SCREEN_HEIGHT_PIXELS = SCREEN_HEIGHT_TILES * TILE_HEIGHT;
 static const i32 SCREEN_WIDTH_PIXELS  = SCREEN_WIDTH_TILES * TILE_WIDTH;
 
-static i32  bit_scan_forward_u(u32 number);
-static i32  convert_tile_to_pixel(i32 tile_value, CoordDimension dimension);
+static i32 bit_scan_forward_u(u32 number);
+static i32 convert_tile_to_pixel(i32 tile_value, CoordDimension dimension);
 static void display_bitmap_tile(i32 *image_buffer, Bitmap *bmp, i32 tile_number,
 				i32 target_x, i32 target_y, i32 tile_width,
 				i32 tile_height, bool mirrored);
@@ -31,13 +31,13 @@ static void display_bitmap_tile(i32 *image_buffer, Bitmap *bmp, i32 tile_number,
 static size_t get_next_aligned_offset(size_t start_offset, size_t min_to_add,
 				      size_t alignment);
 static size_t load_bitmap(const char file_path[], void *location);
-static void   move_player(PlayerState *player_state);
-static bool   check_and_prep_screen_transition(WorldState * world_state,
-					       PlayerState *player_state);
-static void   handle_player_collision(WorldState * world_state,
-				      PlayerState *player_state, Input *input);
-static void   play_sound(Sound *game_sound);
-static void   render_player(i32 *image_buffer, PlayerState *player_state);
+static void move_player(PlayerState *player_state);
+static bool check_and_prep_screen_transition(WorldState *world_state,
+					     PlayerState *player_state);
+static void handle_player_collision(WorldState *world_state,
+				    PlayerState *player_state, Input *input);
+static void play_sound(Sound *game_sound);
+static void render_player(i32 *image_buffer, PlayerState *player_state);
 static void render_rectangle(i32 *image_buffer, i32 min_x, i32 max_x, i32 min_y,
 			     i32 max_y, float red, float green, float blue);
 static void render_status_bar(i32 *image_buffer);
@@ -49,7 +49,7 @@ static void transition_screens(i32 *image_buffer, PlayerState *player_state,
 void game_initialize_memory(Memory *memory, i32 dt)
 {
 	PlayerState *player_state = &memory->player_state;
-	WorldState * world_state  = &memory->world_state;
+	WorldState *world_state   = &memory->world_state;
 
 	size_t sprite_load_result = load_bitmap("resources/player_sprites.bmp",
 						memory->temp_storage);
@@ -103,7 +103,7 @@ void game_update_and_render(Memory *memory, Input *input, Sound *game_sound,
 			    i32 *image_buffer)
 {
 	PlayerState *player_state = &memory->player_state;
-	WorldState * world_state  = &memory->world_state;
+	WorldState *world_state   = &memory->world_state;
 
 	play_sound(game_sound);
 
@@ -140,7 +140,7 @@ static i32 bit_scan_forward_u(u32 number)
 {
 	/* TODO: Use intrinsic for this */
 	bool found = false;
-	i32  index = 0;
+	i32 index  = 0;
 
 	while (!found) {
 		if (index > 31) {
@@ -223,7 +223,7 @@ static void display_bitmap_tile(i32 *restrict image_buffer,
 			i32 buffer_color = image_buffer[target_pixel];
 
 			/* Linear Alpha Blend bmp with existing data in buffer*/
-			i32   alpha   = (bmp_color & 0xff000000) >> 24;
+			i32 alpha     = (bmp_color & 0xff000000) >> 24;
 			float opacity = alpha / 255.0f;
 
 			i32 bmp_red   = (bmp_color & 0x00ff0000) >> 16;
@@ -264,7 +264,7 @@ static size_t get_next_aligned_offset(size_t start_offset, size_t min_to_add,
 	}
 }
 
-static void handle_player_collision(WorldState * world_state,
+static void handle_player_collision(WorldState *world_state,
 				    PlayerState *player_state, Input *input)
 {
 	i32 *current_collision_map =
@@ -272,10 +272,10 @@ static void handle_player_collision(WorldState * world_state,
 	i32 keys = input->keys;
 
 	if (keys & KEYMASK_UP || keys & KEYMASK_DOWN) {
-		bool is_up      = !(keys & KEYMASK_DOWN);
-		i32  change     = is_up ? -1 : 1;
-		i32  new_tile_y = player_state->tile_y + change;
-		i32  tile_x     = player_state->tile_x;
+		bool is_up     = !(keys & KEYMASK_DOWN);
+		i32 change     = is_up ? -1 : 1;
+		i32 new_tile_y = player_state->tile_y + change;
+		i32 tile_x     = player_state->tile_x;
 
 		player_state->sprite_number  = is_up ? 5 : 1;
 		player_state->move_direction = is_up ? UPDIR : DOWNDIR;
@@ -295,10 +295,10 @@ static void handle_player_collision(WorldState * world_state,
 			player_state->move_counter = TILE_HEIGHT;
 		}
 	} else if (keys & KEYMASK_RIGHT || keys & KEYMASK_LEFT) {
-		bool is_right   = !(keys & KEYMASK_LEFT);
-		i32  change     = is_right ? 1 : -1;
-		i32  new_tile_x = player_state->tile_x + change;
-		i32  tile_y     = player_state->tile_y;
+		bool is_right  = !(keys & KEYMASK_LEFT);
+		i32 change     = is_right ? 1 : -1;
+		i32 new_tile_x = player_state->tile_x + change;
+		i32 tile_y     = player_state->tile_y;
 
 		player_state->sprite_number  = 9;
 		player_state->move_direction = is_right ? RIGHTDIR : LEFTDIR;
@@ -352,10 +352,10 @@ static size_t load_bitmap(const char file_path[], void *location)
 	alpha_shift = alpha_shift < 0 ? 0 : alpha_shift;
 
 	/* Discard header and copy image data to location */
-	char *  image_data = ((char *)header) + image_offset;
-	Bitmap *bmp        = location;
-	bmp->width         = image_width;
-	bmp->height        = image_height;
+	char *image_data = ((char *)header) + image_offset;
+	Bitmap *bmp      = location;
+	bmp->width       = image_width;
+	bmp->height      = image_height;
 
 	memcpy(bmp->data, image_data, image_width * image_height * 4);
 
@@ -400,12 +400,12 @@ static void move_player(PlayerState *player_state)
 	player_state->move_counter -= player_state->speed;
 }
 
-static bool check_and_prep_screen_transition(WorldState * world_state,
+static bool check_and_prep_screen_transition(WorldState *world_state,
 					     PlayerState *player_state)
 {
 	TileMap *old_tile_map = world_state->current_tile_map;
-	i32      tile_x       = player_state->tile_x;
-	i32      tile_y       = player_state->tile_y;
+	i32 tile_x            = player_state->tile_x;
+	i32 tile_y            = player_state->tile_y;
 
 	if (tile_y == -1 && old_tile_map->top_connection) {
 		world_state->screen_transitioning = true;
@@ -456,8 +456,8 @@ static void render_player(i32 *image_buffer, PlayerState *player_state)
 	i32 player_min_y = player_state->pixel_y - 16;
 	i32 player_max_y = player_state->pixel_y + 17;
 
-	i32  sprite_number = player_state->sprite_number;
-	bool mirrored      = player_state->move_direction == LEFTDIR;
+	i32 sprite_number = player_state->sprite_number;
+	bool mirrored     = player_state->move_direction == LEFTDIR;
 
 	if (player_state->sprite_location) {
 		display_bitmap_tile(image_buffer, player_state->sprite_location,
