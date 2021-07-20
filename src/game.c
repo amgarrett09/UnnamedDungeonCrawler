@@ -31,6 +31,7 @@ static void display_bitmap_tile(i32 *image_buffer, Bitmap *bmp, i32 tile_number,
 static size_t get_next_aligned_offset(size_t start_offset, size_t min_to_add,
 				      size_t alignment);
 static size_t load_bitmap(const char file_path[], void *location);
+static size_t load_tile_map(const char file_path[], Memory *memory);
 static void move_player(PlayerState *player_state);
 static bool check_and_prep_screen_transition(WorldState *world_state,
 					     PlayerState *player_state);
@@ -41,8 +42,10 @@ static void render_player(i32 *image_buffer, PlayerState *player_state);
 static void render_rectangle(i32 *image_buffer, i32 min_x, i32 max_x, i32 min_y,
 			     i32 max_y, float red, float green, float blue);
 static void render_status_bar(i32 *image_buffer);
-static void render_tile_map(i32 *image_buffer, i32 *tile_map, void *tile_set,
-			    i32 x_offset, i32 y_offset);
+static void render_tile_map(i32 *image_buffer, TileMap *tile_map,
+			    void *tile_set, i32 x_offset, i32 y_offset);
+static void set_tile_map_value(i32 x, i32 y, i32 layer, i32 tile_number,
+			       TileMap *tile_map);
 static void transition_screens(i32 *image_buffer, PlayerState *player_state,
 			       WorldState *world_state);
 
@@ -69,6 +72,13 @@ void game_initialize_memory(Memory *memory, i32 dt)
 			memory->temp_next_load_offset, tile_load_result, 32);
 	}
 
+	size_t tile_map_load_result =
+		load_tile_map("resources/maps/tilemap.tm", memory);
+
+	if (tile_map_load_result) {
+		world_state->current_tile_map = &memory->tile_maps[0];
+	}
+
 	player_state->tile_x = 15;
 	player_state->tile_y = 3;
 	player_state->pixel_x =
@@ -78,25 +88,7 @@ void game_initialize_memory(Memory *memory, i32 dt)
 	player_state->move_counter   = 0;
 	player_state->move_direction = NULLDIR;
 	player_state->speed          = ((TILE_WIDTH / 8) * dt) / 16;
-	player_state->sprite_number  = 1;
-
-	tile_map1.top_connection    = &tile_map2;
-	tile_map1.right_connection  = &tile_map3;
-	tile_map1.bottom_connection = &tile_map4;
-	tile_map1.left_connection   = &tile_map5;
-
-	tile_map2.bottom_connection = &tile_map1;
-	tile_map3.left_connection   = &tile_map1;
-	tile_map4.top_connection    = &tile_map1;
-	tile_map5.right_connection  = &tile_map1;
-
-	world_state->current_tile_map     = &tile_map1;
-	world_state->next_tile_map        = &tile_map1;
-	world_state->screen_transitioning = false;
-	world_state->transition_direction = NULLDIR;
-	world_state->transition_counter   = 0;
-
-	memory->is_initialized = true;
+	player_state->sprite_number  = 2;
 }
 
 void game_update_and_render(Memory *memory, Input *input, Sound *game_sound,
@@ -123,8 +115,7 @@ void game_update_and_render(Memory *memory, Input *input, Sound *game_sound,
 		move_player(player_state);
 	}
 
-	render_tile_map(image_buffer,
-			(i32 *)world_state->current_tile_map->tile_map,
+	render_tile_map(image_buffer, world_state->current_tile_map,
 			world_state->tile_set, 0, 0);
 
 	render_player(image_buffer, player_state);
@@ -170,12 +161,17 @@ static void display_bitmap_tile(i32 *restrict image_buffer,
 				i32 target_x, i32 target_y, i32 tile_width,
 				i32 tile_height, bool mirrored)
 {
-	i32 bmp_width  = bmp->width;
-	i32 bmp_height = bmp->height;
+	if (!tile_number)
+		return;
+
+	i32 bmp_tile_number = tile_number - 1;
+	i32 bmp_width       = bmp->width;
+	i32 bmp_height      = bmp->height;
 
 	/* Calculate starting x and y position in bmp based on tile number */
-	i32 source_x = (tile_number * tile_width) % bmp_width;
-	i32 source_y = (tile_number / (bmp_width / tile_width)) * tile_height;
+	i32 source_x = (bmp_tile_number * tile_width) % bmp_width;
+	i32 source_y =
+		(bmp_tile_number / (bmp_width / tile_width)) * tile_height;
 
 	i32 *image = (i32 *)bmp->data;
 
@@ -277,7 +273,7 @@ static void handle_player_collision(WorldState *world_state,
 		i32 new_tile_y = player_state->tile_y + change;
 		i32 tile_x     = player_state->tile_x;
 
-		player_state->sprite_number  = is_up ? 5 : 1;
+		player_state->sprite_number  = is_up ? 6 : 2;
 		player_state->move_direction = is_up ? UPDIR : DOWNDIR;
 
 		bool is_not_colliding = true;
@@ -300,7 +296,7 @@ static void handle_player_collision(WorldState *world_state,
 		i32 new_tile_x = player_state->tile_x + change;
 		i32 tile_y     = player_state->tile_y;
 
-		player_state->sprite_number  = 9;
+		player_state->sprite_number  = 10;
 		player_state->move_direction = is_right ? RIGHTDIR : LEFTDIR;
 
 		bool is_not_colliding = true;
@@ -340,7 +336,18 @@ static size_t load_bitmap(const char file_path[], void *location)
 	u32 blue_mask  = header->blue_mask;
 	u32 alpha_mask = header->alpha_mask;
 
-	/* How many bits we need to shift to get values to start at bit 0*/
+	/* Discard header and copy image data to location */
+	char *image_data = ((char *)header) + image_offset;
+	Bitmap *bmp      = location;
+	bmp->width       = image_width;
+	bmp->height      = image_height;
+
+	memcpy(bmp->data, image_data, image_width * image_height * 4);
+
+	/*
+	 * For swizzling:
+	 * How many bits we need to shift to get values to start at bit 0
+	 */
 	i32 red_shift   = bit_scan_forward_u(red_mask);
 	i32 green_shift = bit_scan_forward_u(green_mask);
 	i32 blue_shift  = bit_scan_forward_u(blue_mask);
@@ -350,14 +357,6 @@ static size_t load_bitmap(const char file_path[], void *location)
 	green_shift = green_shift < 0 ? 0 : green_shift;
 	blue_shift  = blue_shift < 0 ? 0 : blue_shift;
 	alpha_shift = alpha_shift < 0 ? 0 : alpha_shift;
-
-	/* Discard header and copy image data to location */
-	char *image_data = ((char *)header) + image_offset;
-	Bitmap *bmp      = location;
-	bmp->width       = image_width;
-	bmp->height      = image_height;
-
-	memcpy(bmp->data, image_data, image_width * image_height * 4);
 
 	i32 *image = (i32 *)bmp->data;
 
@@ -376,6 +375,50 @@ static size_t load_bitmap(const char file_path[], void *location)
 
 	/*Return size of bitmap with image data in it*/
 	return image_width * image_height * 4 + sizeof(Bitmap);
+}
+
+static size_t load_tile_map(const char file_path[], Memory *memory)
+{
+	char *temp_location =
+		(char *)memory->temp_storage + memory->temp_next_load_offset;
+
+	size_t result =
+		debug_platform_load_asset(file_path, (void *)temp_location);
+
+	if (!result)
+		return 0;
+
+	TileMap *tile_map = &memory->tile_maps[0];
+
+	i32 tile_map_index = 0;
+	for (i32 y = 0; y < SCREEN_HEIGHT_TILES; y++) {
+		for (i32 x = 0; x < SCREEN_WIDTH_TILES; x++) {
+			i32 tile_number = 0;
+			i32 layer       = 0;
+			for (i32 j = 0; j < 128; j++) {
+				char c = temp_location[tile_map_index++];
+
+				if (c == '\n' || c == 0) {
+					break;
+				} else if (c == ',') {
+					if (tile_number > 0) {
+						set_tile_map_value(x, y, layer,
+								   tile_number,
+								   tile_map);
+					}
+					tile_number = 0;
+					layer += 1;
+				} else if (c >= 48 && c <= 57) {
+					tile_number =
+						tile_number * 10 + (c - '0');
+				} else {
+					continue;
+				}
+			}
+		}
+	}
+
+	return result;
 }
 
 static void move_player(PlayerState *player_state)
@@ -495,25 +538,69 @@ static void render_status_bar(i32 *image_buffer)
 	render_rectangle(image_buffer, 0, 1280, 640, 720, 1.0f, 0.0f, 1.0f);
 }
 
-static void render_tile_map(i32 *image_buffer, i32 *tile_map, void *tile_set,
-			    i32 x_offset, i32 y_offset)
+static void render_tile_map(i32 *image_buffer, TileMap *tile_map,
+			    void *tile_set, i32 x_offset, i32 y_offset)
 {
 	if (!tile_set | !tile_map | !image_buffer)
 		return;
 
 	/* TODO: Don't bother trying to draw tiles that are off screen */
+
+	/* Background tiles */
+	i32 *background_map = (i32 *)tile_map->background_map;
 	for (i32 row = 0; row < SCREEN_HEIGHT_TILES; row++) {
 		for (i32 column = 0; column < SCREEN_WIDTH_TILES; column++) {
 			i32 target_y = row * TILE_HEIGHT;
 			i32 target_x = column * TILE_WIDTH;
 			i32 tile_number =
-				tile_map[row * SCREEN_WIDTH_TILES + column];
+				background_map[row * SCREEN_WIDTH_TILES +
+					       column];
 
 			display_bitmap_tile(image_buffer, tile_set, tile_number,
 					    target_x + x_offset,
 					    target_y + y_offset, TILE_WIDTH,
 					    TILE_HEIGHT, false);
 		}
+	}
+
+	/* Foreground tiles */
+	i32 *foreground_tiles = tile_map->foreground_tiles;
+	i32 len               = tile_map->foreground_tiles_length;
+	for (i32 i = 0; i < len; i++) {
+		i32 tile_data   = foreground_tiles[i];
+		i32 target_x    = (tile_data & 0xFF000000) >> 24;
+		i32 target_y    = (tile_data & 0x00FF0000) >> 16;
+		i32 tile_number = (tile_data & 0x0000FFFF);
+
+		target_x *= TILE_WIDTH;
+		target_y *= TILE_HEIGHT;
+
+		display_bitmap_tile(image_buffer, tile_set, tile_number,
+				    target_x + x_offset, target_y + y_offset,
+				    TILE_WIDTH, TILE_HEIGHT, false);
+	}
+}
+
+static void set_tile_map_value(i32 x, i32 y, i32 layer, i32 tile_number,
+			       TileMap *tile_map)
+{
+	switch (layer) {
+	case 0:
+		tile_map->background_map[y][x] = tile_number;
+		break;
+	case 1: {
+
+		i32 len = tile_map->foreground_tiles_length;
+		tile_map->foreground_tiles[len] = ((x & 0xFF) << 24) |
+			((y & 0xFF) << 16) | (tile_number & 0xFFFF);
+		tile_map->foreground_tiles_length += 1;
+		break;
+	}
+	case 2:
+		tile_map->collision_map[y][x] = !!tile_number;
+		break;
+	default:
+		break;
 	}
 }
 
@@ -603,13 +690,13 @@ static void transition_screens(i32 *image_buffer, PlayerState *player_state,
 	}
 
 	/* TODO: Refactor this so that it doesn't require two tile map draws? */
-	render_tile_map(
-		image_buffer, (i32 *)world_state->next_tile_map->tile_map,
-		world_state->tile_set, new_map_x_offset, new_map_y_offset);
+	render_tile_map(image_buffer, world_state->next_tile_map,
+			world_state->tile_set, new_map_x_offset,
+			new_map_y_offset);
 
-	render_tile_map(
-		image_buffer, (i32 *)world_state->current_tile_map->tile_map,
-		world_state->tile_set, old_map_x_offset, old_map_y_offset);
+	render_tile_map(image_buffer, world_state->current_tile_map,
+			world_state->tile_set, old_map_x_offset,
+			old_map_y_offset);
 
 	render_player(image_buffer, player_state);
 

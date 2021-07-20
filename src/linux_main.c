@@ -30,7 +30,6 @@
 #include <string.h>
 
 #include "game.h"
-#include "tile_maps.c"
 #include "game.c"
 
 static void handle_key_press(XKeyEvent *xkey, Input *input);
