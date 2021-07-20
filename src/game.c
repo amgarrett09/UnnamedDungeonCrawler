@@ -30,7 +30,7 @@ static void display_bitmap_tile(i32 *image_buffer, Bitmap *bmp, i32 tile_number,
 
 static size_t get_next_aligned_offset(size_t start_offset, size_t min_to_add,
 				      size_t alignment);
-static size_t load_bitmap(const char file_path[], void *location);
+static void *load_bitmap(const char file_path[], Memory *memory);
 static size_t load_tile_map(const char file_path[], Memory *memory);
 static void move_player(PlayerState *player_state);
 static bool check_and_prep_screen_transition(WorldState *world_state,
@@ -54,22 +54,15 @@ void game_initialize_memory(Memory *memory, i32 dt)
 	PlayerState *player_state = &memory->player_state;
 	WorldState *world_state   = &memory->world_state;
 
-	size_t sprite_load_result = load_bitmap("resources/player_sprites.bmp",
-						memory->temp_storage);
+	void *sprite_load_result =
+		load_bitmap("resources/player_sprites.bmp", memory);
 	if (sprite_load_result) {
-		player_state->sprite_location = memory->temp_storage;
-		memory->temp_next_load_offset = get_next_aligned_offset(
-			memory->temp_next_load_offset, sprite_load_result, 32);
+		player_state->sprite_location = sprite_load_result;
 	}
 
-	char *next_load_location =
-		(char *)memory->temp_storage + memory->temp_next_load_offset;
-	size_t tile_load_result = load_bitmap("resources/tile_set.bmp",
-					      (void *)next_load_location);
+	void *tile_load_result = load_bitmap("resources/tile_set.bmp", memory);
 	if (tile_load_result) {
-		world_state->tile_set         = (void *)next_load_location;
-		memory->temp_next_load_offset = get_next_aligned_offset(
-			memory->temp_next_load_offset, tile_load_result, 32);
+		world_state->tile_set = tile_load_result;
 	}
 
 	size_t tile_map_load_result =
@@ -317,15 +310,19 @@ static void handle_player_collision(WorldState *world_state,
 }
 
 // TODO: maybe pass an expected size parameter and fail if file is larger
-static size_t load_bitmap(const char file_path[], void *location)
+static void *load_bitmap(const char file_path[], Memory *memory)
 {
-	size_t result = debug_platform_load_asset(file_path, location);
+	char *load_location =
+		(char *)memory->temp_storage + memory->temp_next_load_offset;
 
-	if (result == 0) {
-		return 0;
+	size_t result =
+		debug_platform_load_asset(file_path, (void *)load_location);
+
+	if (!result) {
+		return NULL;
 	}
 
-	BMPHeader *header = (BMPHeader *)location;
+	BMPHeader *header = (BMPHeader *)load_location;
 
 	u32 image_offset = header->image_offset;
 	i32 image_width  = header->image_width;
@@ -338,7 +335,7 @@ static size_t load_bitmap(const char file_path[], void *location)
 
 	/* Discard header and copy image data to location */
 	char *image_data = ((char *)header) + image_offset;
-	Bitmap *bmp      = location;
+	Bitmap *bmp      = (Bitmap *)load_location;
 	bmp->width       = image_width;
 	bmp->height      = image_height;
 
@@ -373,8 +370,11 @@ static size_t load_bitmap(const char file_path[], void *location)
 		image[i] = alpha | red | green | blue;
 	}
 
-	/*Return size of bitmap with image data in it*/
-	return image_width * image_height * 4 + sizeof(Bitmap);
+	size_t bitmap_size = image_width * image_height * 4 + sizeof(Bitmap);
+	memory->temp_next_load_offset = get_next_aligned_offset(
+		memory->temp_next_load_offset, bitmap_size, 32);
+
+	return (void *)load_location;
 }
 
 static size_t load_tile_map(const char file_path[], Memory *memory)
