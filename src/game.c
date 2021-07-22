@@ -82,6 +82,8 @@ void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt)
 	player_state->speed          = ((TILE_WIDTH / 8) * dt) / 16;
 	player_state->sprite_number  = 2;
 
+	memory->tile_maps[0].top_connection = &memory->tile_maps[0];
+
 	render_tile_map(screen_state->image_buffer,
 			world_state->current_tile_map, world_state->tile_set, 0,
 			0);
@@ -558,6 +560,10 @@ static void render_hot_tiles(ScreenState *screen_state, WorldState *world_state)
 	i32 hot_tiles_length = screen_state->hot_tiles_length;
 	i32 *image_buffer    = screen_state->image_buffer;
 
+	i32 *foreground_tiles = world_state->current_tile_map->foreground_tiles;
+	i32 foreground_tiles_length =
+		world_state->current_tile_map->foreground_tiles_length;
+
 	if (!hot_tiles_length)
 		return;
 
@@ -574,12 +580,24 @@ static void render_hot_tiles(ScreenState *screen_state, WorldState *world_state)
 		display_bitmap_tile(image_buffer, world_state->tile_set,
 				    tile_number, target_x, target_y, TILE_WIDTH,
 				    TILE_HEIGHT, false);
+
+		/* Not ideal, but ok for now due to foreground tile structure */
+		for (i32 j = 0; j < foreground_tiles_length; j++) {
+			i32 value        = foreground_tiles[j];
+			i32 foreground_x = (value & 0xFF000000) >> 24;
+			i32 foreground_y = (value & 0x00FF0000) >> 16;
+			i32 tile_number  = (value & 0xFFFF);
+
+			if (foreground_x == tile_x && foreground_y == tile_y) {
+				display_bitmap_tile(
+					image_buffer, world_state->tile_set,
+					tile_number, target_x, target_y,
+					TILE_WIDTH, TILE_HEIGHT, false);
+			}
+		}
 	}
 
 	screen_state->hot_tiles_length = 0;
-
-	render_foreground_tiles(image_buffer, world_state->current_tile_map,
-				world_state->tile_set, 0, 0);
 }
 
 static void render_player(i32 *image_buffer, PlayerState *player_state)
@@ -628,7 +646,6 @@ static void render_status_bar(i32 *image_buffer)
 	render_rectangle(image_buffer, 0, 1280, 640, 720, 1.0f, 0.0f, 1.0f);
 }
 
-/* TODO: Only render "hot" tiles */
 static void render_tile_map(i32 *image_buffer, TileMap *tile_map,
 			    void *tile_set, i32 x_offset, i32 y_offset)
 {
