@@ -40,7 +40,8 @@ static i32 init_sound(Sound *game_sound, snd_pcm_hw_params_t **params,
 		      snd_pcm_t **handle, snd_pcm_uframes_t *frames);
 static i32 allocate_memory(Memory *memory);
 
-static Memory GAME_MEMORY = {};
+static Memory GAME_MEMORY       = {};
+static ScreenState SCREEN_STATE = {};
 
 int main()
 {
@@ -54,7 +55,7 @@ int main()
 	char *image_buffer = NULL;
 
 	/* Declarations for ALSA */
-	Sound game_sound            = {0};
+	Sound game_sound            = {};
 	snd_pcm_hw_params_t *params = NULL;
 	snd_pcm_t *handle           = NULL;
 	snd_pcm_uframes_t frames    = 0;
@@ -69,6 +70,8 @@ int main()
 		goto cleanup;
 	}
 
+	SCREEN_STATE.image_buffer = (i32 *)image_buffer;
+
 	rc = allocate_memory(&GAME_MEMORY);
 
 	if (rc < 0) {
@@ -82,7 +85,7 @@ int main()
 		game_sound.sound_initialized = true;
 	}
 
-	Input input = {0};
+	Input input = {};
 
 	/* Setup timespecs to enforce a set framerate in main loop */
 	i64 frametime = 16666667;
@@ -95,7 +98,7 @@ int main()
 	 */
 	i32 dt = 16;
 
-	game_initialize_memory(&GAME_MEMORY, dt);
+	game_initialize_memory(&GAME_MEMORY, &SCREEN_STATE, dt);
 
 	game_sound.sound_playing = true;
 
@@ -129,7 +132,7 @@ int main()
 		}
 
 		game_update_and_render(&GAME_MEMORY, &input, &game_sound,
-				       (i32 *)image_buffer);
+				       &SCREEN_STATE);
 
 		if (game_sound.sound_playing && game_sound.sound_initialized) {
 			rc = snd_pcm_writei(handle, game_sound.sound_buffer,

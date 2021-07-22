@@ -136,10 +136,10 @@ typedef struct {
 } Memory;
 
 typedef struct {
-	PlayerState *player_state;
-	WorldState *world_state;
-	TileMap *tile_maps;
-} MemoryPartitions;
+	i32 hot_tiles[SCREEN_HEIGHT_TILES * SCREEN_WIDTH_TILES];
+	i32 *image_buffer;
+	i32 hot_tiles_length;
+} ScreenState;
 
 typedef struct {
 	char *sound_buffer;
@@ -149,9 +149,9 @@ typedef struct {
 	bool sound_playing;
 } Sound;
 
-void game_initialize_memory(Memory *memory, i32 dt);
+void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt);
 void game_update_and_render(Memory *memory, Input *input, Sound *game_sound,
-			    i32 *image_buffer);
+			    ScreenState *screen_state);
 
 /*
  * These are defined by platform layer.
