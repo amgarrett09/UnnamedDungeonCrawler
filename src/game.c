@@ -23,6 +23,8 @@ static const i32 SCREEN_HEIGHT_PIXELS = SCREEN_HEIGHT_TILES * TILE_HEIGHT;
 static const i32 SCREEN_WIDTH_PIXELS  = SCREEN_WIDTH_TILES * TILE_WIDTH;
 
 static i32 bit_scan_forward_u(u32 number);
+static bool check_and_prep_screen_transition(WorldState *world_state,
+					     PlayerState *player_state);
 static i32 convert_tile_to_pixel(i32 tile_value, CoordDimension dimension);
 static void display_bitmap_tile(i32 *image_buffer, Bitmap *bmp, i32 tile_number,
 				i32 target_x, i32 target_y, i32 tile_width,
@@ -33,8 +35,6 @@ static size_t get_next_aligned_offset(size_t start_offset, size_t min_to_add,
 static void *load_bitmap(const char file_path[], Memory *memory);
 static size_t load_tile_map(const char file_path[], Memory *memory);
 static void move_player(PlayerState *player_state, ScreenState *screen_state);
-static bool check_and_prep_screen_transition(WorldState *world_state,
-					     PlayerState *player_state);
 static void handle_player_collision(WorldState *world_state,
 				    PlayerState *player_state, Input *input,
 				    ScreenState *screen_state);
@@ -142,6 +142,44 @@ static i32 bit_scan_forward_u(u32 number)
 	}
 
 	return index;
+}
+
+static bool check_and_prep_screen_transition(WorldState *world_state,
+					     PlayerState *player_state)
+{
+	TileMap *old_tile_map = world_state->current_tile_map;
+	i32 tile_x            = player_state->tile_x;
+	i32 tile_y            = player_state->tile_y;
+
+	if (tile_y == -1 && old_tile_map->top_connection) {
+		world_state->screen_transitioning = true;
+		world_state->transition_counter   = SCREEN_HEIGHT_PIXELS;
+		world_state->transition_direction = UPDIR;
+		world_state->next_tile_map = old_tile_map->top_connection;
+		return true;
+	} else if (tile_y == SCREEN_HEIGHT_TILES &&
+		   old_tile_map->bottom_connection) {
+		world_state->screen_transitioning = true;
+		world_state->transition_counter   = SCREEN_HEIGHT_PIXELS;
+		world_state->transition_direction = DOWNDIR;
+		world_state->next_tile_map = old_tile_map->bottom_connection;
+		return true;
+	} else if (tile_x == -1 && old_tile_map->left_connection) {
+		world_state->screen_transitioning = true;
+		world_state->transition_counter   = SCREEN_WIDTH_PIXELS;
+		world_state->transition_direction = LEFTDIR;
+		world_state->next_tile_map = old_tile_map->left_connection;
+		return true;
+	} else if (tile_x == SCREEN_WIDTH_TILES &&
+		   old_tile_map->right_connection) {
+		world_state->screen_transitioning = true;
+		world_state->transition_counter   = SCREEN_WIDTH_PIXELS;
+		world_state->transition_direction = RIGHTDIR;
+		world_state->next_tile_map = old_tile_map->right_connection;
+		return true;
+	}
+
+	return false;
 }
 
 static i32 convert_tile_to_pixel(i32 tile_value, CoordDimension dimension)
@@ -322,6 +360,10 @@ static void handle_player_collision(WorldState *world_state,
 
 static void hot_tile_push(ScreenState *screen_state, i32 tile_x, i32 tile_y)
 {
+	if (tile_x < 0 || tile_y < 0 || tile_x >= SCREEN_WIDTH_TILES ||
+	    tile_y >= SCREEN_HEIGHT_TILES)
+		return;
+
 	i32 value = ((tile_x & 0xFFFF) << 24) | (tile_y & 0xFFFF);
 
 	screen_state->hot_tiles[screen_state->hot_tiles_length++] = value;
@@ -477,44 +519,6 @@ static void move_player(PlayerState *player_state, ScreenState *screen_state)
 	player_state->move_counter -= player_state->speed;
 }
 
-static bool check_and_prep_screen_transition(WorldState *world_state,
-					     PlayerState *player_state)
-{
-	TileMap *old_tile_map = world_state->current_tile_map;
-	i32 tile_x            = player_state->tile_x;
-	i32 tile_y            = player_state->tile_y;
-
-	if (tile_y == -1 && old_tile_map->top_connection) {
-		world_state->screen_transitioning = true;
-		world_state->transition_counter   = SCREEN_HEIGHT_PIXELS;
-		world_state->transition_direction = UPDIR;
-		world_state->next_tile_map = old_tile_map->top_connection;
-		return true;
-	} else if (tile_y == SCREEN_HEIGHT_TILES &&
-		   old_tile_map->bottom_connection) {
-		world_state->screen_transitioning = true;
-		world_state->transition_counter   = SCREEN_HEIGHT_PIXELS;
-		world_state->transition_direction = DOWNDIR;
-		world_state->next_tile_map = old_tile_map->bottom_connection;
-		return true;
-	} else if (tile_x == -1 && old_tile_map->left_connection) {
-		world_state->screen_transitioning = true;
-		world_state->transition_counter   = SCREEN_WIDTH_PIXELS;
-		world_state->transition_direction = LEFTDIR;
-		world_state->next_tile_map = old_tile_map->left_connection;
-		return true;
-	} else if (tile_x == SCREEN_WIDTH_TILES &&
-		   old_tile_map->right_connection) {
-		world_state->screen_transitioning = true;
-		world_state->transition_counter   = SCREEN_WIDTH_PIXELS;
-		world_state->transition_direction = RIGHTDIR;
-		world_state->next_tile_map = old_tile_map->right_connection;
-		return true;
-	}
-
-	return false;
-}
-
 static void play_sound(Sound *game_sound)
 {
 	if (game_sound->sound_initialized && game_sound->sound_playing) {
@@ -561,6 +565,7 @@ static void render_hot_tiles(ScreenState *screen_state, WorldState *world_state)
 		i32 data   = hot_tiles[i];
 		i32 tile_x = (data & 0xFFFF0000) >> 24;
 		i32 tile_y = data & 0x0000FFFF;
+
 		i32 tile_number =
 			background_map[tile_y * SCREEN_WIDTH_TILES + tile_x];
 		i32 target_y = tile_y * TILE_HEIGHT;
