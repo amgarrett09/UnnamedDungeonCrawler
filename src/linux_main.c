@@ -30,6 +30,7 @@
 #include <string.h>
 
 #include "game.h"
+#include "tile_map.c"
 #include "game.c"
 
 static void handle_key_press(XKeyEvent *xkey, Input *input);
@@ -40,11 +41,11 @@ static i32 init_sound(Sound *game_sound, snd_pcm_hw_params_t **params,
 		      snd_pcm_t **handle, snd_pcm_uframes_t *frames);
 static i32 allocate_memory(Memory *memory);
 
-static Memory GAME_MEMORY       = {};
-static ScreenState SCREEN_STATE = {};
-
 int main()
 {
+	static Memory game_memory       = {};
+	static ScreenState screen_state = {};
+
 	/* Declarations for X11 */
 	Display *display   = NULL;
 	Visual *visual     = NULL;
@@ -70,9 +71,9 @@ int main()
 		goto cleanup;
 	}
 
-	SCREEN_STATE.image_buffer = (i32 *)image_buffer;
+	screen_state.image_buffer = (i32 *)image_buffer;
 
-	rc = allocate_memory(&GAME_MEMORY);
+	rc = allocate_memory(&game_memory);
 
 	if (rc < 0) {
 		exit_code = 1;
@@ -98,7 +99,7 @@ int main()
 	 */
 	i32 dt = 16;
 
-	game_initialize_memory(&GAME_MEMORY, &SCREEN_STATE, dt);
+	game_initialize_memory(&game_memory, &screen_state, dt);
 
 	game_sound.sound_playing = true;
 
@@ -131,8 +132,8 @@ int main()
 			}
 		}
 
-		game_update_and_render(&GAME_MEMORY, &input, &game_sound,
-				       &SCREEN_STATE);
+		game_update_and_render(&game_memory, &input, &game_sound,
+				       &screen_state);
 
 		if (game_sound.sound_playing && game_sound.sound_initialized) {
 			rc = snd_pcm_writei(handle, game_sound.sound_buffer,
@@ -181,8 +182,8 @@ cleanup:
 		fclose(game_sound.stream);
 	}
 
-	if (GAME_MEMORY.temp_storage) {
-		free(GAME_MEMORY.temp_storage);
+	if (game_memory.temp_storage) {
+		free(game_memory.temp_storage);
 	}
 
 	return exit_code;

@@ -16,7 +16,7 @@
  */
 
 /*
- * Dependendencies: <string.h>, game.h, tile_maps.c
+ * Dependendencies: <string.h>, game.h, tile_map.c
  */
 
 static const i32 SCREEN_HEIGHT_PIXELS = SCREEN_HEIGHT_TILES * TILE_HEIGHT;
@@ -33,7 +33,6 @@ static void display_bitmap_tile(i32 *image_buffer, Bitmap *bmp, i32 tile_number,
 static size_t get_next_aligned_offset(size_t start_offset, size_t min_to_add,
 				      size_t alignment);
 static void *load_bitmap(const char file_path[], Memory *memory);
-static size_t load_tile_map(const char file_path[], Memory *memory);
 static void move_player(PlayerState *player_state, ScreenState *screen_state);
 static void handle_player_collision(WorldState *world_state,
 				    PlayerState *player_state, Input *input,
@@ -50,8 +49,6 @@ static void render_rectangle(i32 *image_buffer, i32 min_x, i32 max_x, i32 min_y,
 static void render_status_bar(i32 *image_buffer);
 static void render_tile_map(i32 *image_buffer, TileMap *tile_map,
 			    void *tile_set, i32 x_offset, i32 y_offset);
-static void set_tile_map_value(i32 x, i32 y, i32 layer, i32 tile_number,
-			       TileMap *tile_map);
 static void transition_screens(i32 *image_buffer, PlayerState *player_state,
 			       WorldState *world_state);
 
@@ -65,7 +62,7 @@ void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt)
 	world_state->tile_set = load_bitmap("resources/tile_set.bmp", memory);
 
 	size_t tile_map_load_result =
-		load_tile_map("resources/maps/tilemap.tm", memory);
+		tm_load_tile_map("resources/maps/tilemap.tm", memory);
 
 	if (tile_map_load_result) {
 		world_state->current_tile_map = &memory->tile_maps[0];
@@ -81,8 +78,6 @@ void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt)
 	player_state->move_direction = NULLDIR;
 	player_state->speed          = ((TILE_WIDTH / 8) * dt) / 16;
 	player_state->sprite_number  = 2;
-
-	memory->tile_maps[0].top_connection = &memory->tile_maps[0];
 
 	render_tile_map(screen_state->image_buffer,
 			world_state->current_tile_map, world_state->tile_set, 0,
@@ -439,50 +434,6 @@ static void *load_bitmap(const char file_path[], Memory *memory)
 	return (void *)load_location;
 }
 
-static size_t load_tile_map(const char file_path[], Memory *memory)
-{
-	char *temp_location =
-		(char *)memory->temp_storage + memory->temp_next_load_offset;
-
-	size_t result =
-		debug_platform_load_asset(file_path, (void *)temp_location);
-
-	if (!result)
-		return 0;
-
-	TileMap *tile_map = &memory->tile_maps[0];
-
-	i32 tile_map_index = 0;
-	for (i32 y = 0; y < SCREEN_HEIGHT_TILES; y++) {
-		for (i32 x = 0; x < SCREEN_WIDTH_TILES; x++) {
-			i32 tile_number = 0;
-			i32 layer       = 0;
-			for (i32 j = 0; j < 128; j++) {
-				char c = temp_location[tile_map_index++];
-
-				if (c == '\n' || c == 0) {
-					break;
-				} else if (c == ',') {
-					if (tile_number > 0) {
-						set_tile_map_value(x, y, layer,
-								   tile_number,
-								   tile_map);
-					}
-					tile_number = 0;
-					layer += 1;
-				} else if (c >= 48 && c <= 57) {
-					tile_number =
-						tile_number * 10 + (c - '0');
-				} else {
-					continue;
-				}
-			}
-		}
-	}
-
-	return result;
-}
-
 static void move_player(PlayerState *player_state, ScreenState *screen_state)
 {
 	switch (player_state->move_direction) {
@@ -581,7 +532,10 @@ static void render_hot_tiles(ScreenState *screen_state, WorldState *world_state)
 				    tile_number, target_x, target_y, TILE_WIDTH,
 				    TILE_HEIGHT, false);
 
-		/* Not ideal, but ok for now due to foreground tile structure */
+		/*
+		 * This actually performs fine even with an entire screen full
+		 * of foreground tiles, likely due to good cache locality
+		 */
 		for (i32 j = 0; j < foreground_tiles_length; j++) {
 			i32 value        = foreground_tiles[j];
 			i32 foreground_x = (value & 0xFF000000) >> 24;
@@ -673,33 +627,9 @@ static void render_tile_map(i32 *image_buffer, TileMap *tile_map,
 				y_offset);
 }
 
-static void set_tile_map_value(i32 x, i32 y, i32 layer, i32 tile_number,
-			       TileMap *tile_map)
-{
-	switch (layer) {
-	case 0:
-		tile_map->background_map[y][x] = tile_number;
-		break;
-	case 1: {
-
-		i32 len = tile_map->foreground_tiles_length;
-		tile_map->foreground_tiles[len] = ((x & 0xFF) << 24) |
-			((y & 0xFF) << 16) | (tile_number & 0xFFFF);
-		tile_map->foreground_tiles_length += 1;
-		break;
-	}
-	case 2:
-		tile_map->collision_map[y][x] = !!tile_number;
-		break;
-	default:
-		break;
-	}
-}
-
 /*
  * TODO: May want to implement scrolling in the platform layer and then draw
- * in new tile map one row of tiles at a time, instead of doing two whole
- * tile map draws
+ * in only part of the screen each frame, instead of redrawing all of it
  */
 static void transition_screens(i32 *image_buffer, PlayerState *player_state,
 			       WorldState *world_state)

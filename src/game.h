@@ -28,6 +28,7 @@
 #define TILE_HEIGHT 32
 #define SCREEN_WIDTH_TILES 40
 #define SCREEN_HEIGHT_TILES 20
+#define MAX_TILE_MAPS 64
 
 typedef int8_t i8;
 typedef int16_t i16;
@@ -128,7 +129,7 @@ typedef struct {
 typedef struct {
 	PlayerState player_state;
 	WorldState world_state;
-	TileMap tile_maps[64];
+	TileMap tile_maps[MAX_TILE_MAPS];
 	void *temp_storage;
 	size_t temp_storage_size;
 	size_t temp_next_load_offset;
