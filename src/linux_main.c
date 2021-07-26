@@ -33,58 +33,70 @@
 #include "tile_map.c"
 #include "game.c"
 
+typedef struct WindowState {
+	Display *display;
+	Visual *visual;
+	Window window;
+	GC gc;
+	XEvent event;
+	XImage *ximage;
+	char *image_buffer;
+	i32 err;
+} WindowState;
+
+typedef struct AlsaState {
+	Sound game_sound;
+	snd_pcm_t *sound_handle;
+	snd_pcm_uframes_t frames;
+	i32 err;
+} AlsaState;
+
+typedef struct StorageState {
+	void *temp_storage;
+	size_t temp_storage_size;
+	i32 err;
+} StorageState;
+
 static void handle_key_press(XKeyEvent *xkey, Input *input);
 static void handle_key_release(XKeyEvent *xkey, Input *input);
-static i32 init_window(Display **display, Visual **visual, Window *window,
-		       GC *gc, XImage **ximage, char **image_buffer);
-static i32 init_sound(Sound *game_sound, snd_pcm_hw_params_t **params,
-		      snd_pcm_t **handle, snd_pcm_uframes_t *frames);
-static i32 allocate_memory(Memory *memory);
+static WindowState init_window(void);
+static AlsaState init_sound(void);
+static StorageState allocate_temp_storage(void);
 
 int main()
 {
 	static Memory game_memory       = {};
 	static ScreenState screen_state = {};
 
-	/* Declarations for X11 */
-	Display *display   = NULL;
-	Visual *visual     = NULL;
-	Window window      = {0};
-	XEvent event       = {0};
-	GC gc              = {0};
-	XImage *ximage     = NULL;
-	char *image_buffer = NULL;
-
-	/* Declarations for ALSA */
-	Sound game_sound            = {};
-	snd_pcm_hw_params_t *params = NULL;
-	snd_pcm_t *handle           = NULL;
-	snd_pcm_uframes_t frames    = 0;
-
 	int exit_code = 0;
-	i32 rc        = 0;
 
-	rc = init_window(&display, &visual, &window, &gc, &ximage,
-			 &image_buffer);
-	if (rc < 0) {
+	WindowState window_state = init_window();
+	if (window_state.err < 0) {
 		exit_code = 1;
 		goto cleanup;
 	}
 
-	screen_state.image_buffer = (i32 *)image_buffer;
+	screen_state.image_buffer = (i32 *)window_state.image_buffer;
 
-	rc = allocate_memory(&game_memory);
-
-	if (rc < 0) {
+	AlsaState alsa = init_sound();
+	if (alsa.err < 0) {
 		exit_code = 1;
 		goto cleanup;
 	}
 
-	rc = init_sound(&game_sound, &params, &handle, &frames);
+	Sound game_sound = alsa.game_sound;
 
-	if (rc >= 0) {
-		game_sound.sound_initialized = true;
+	StorageState storage = allocate_temp_storage();
+
+	if (storage.err < 0) {
+		exit_code = 1;
+		goto cleanup;
 	}
+
+	game_memory.temp_storage          = storage.temp_storage;
+	game_memory.temp_storage_size     = storage.temp_storage_size;
+	game_memory.temp_next_load_offset = 0;
+	game_memory.is_initialized        = false;
 
 	Input input = {};
 
@@ -110,24 +122,28 @@ int main()
 	clock_gettime(CLOCK_REALTIME, &start);
 
 	while (!should_close_window) {
-		while (XPending(display)) {
-			XNextEvent(display, &event);
+		while (XPending(window_state.display)) {
+			XNextEvent(window_state.display, &window_state.event);
 
-			switch (event.type) {
+			switch (window_state.event.type) {
 			case ClientMessage:
 				should_close_window = true;
 				break;
 			case KeyPress: {
-				handle_key_press(&event.xkey, &input);
+				handle_key_press(&window_state.event.xkey,
+						 &input);
 				break;
 			}
 			case KeyRelease: {
-				handle_key_release(&event.xkey, &input);
+				handle_key_release(&window_state.event.xkey,
+						   &input);
 				break;
 			}
 			case Expose:
-				XPutImage(display, window, gc, ximage, 0, 0, 0,
-					  0, WIN_WIDTH, WIN_HEIGHT);
+				XPutImage(window_state.display,
+					  window_state.window, window_state.gc,
+					  window_state.ximage, 0, 0, 0, 0,
+					  WIN_WIDTH, WIN_HEIGHT);
 				break;
 			}
 		}
@@ -136,16 +152,18 @@ int main()
 				       &screen_state);
 
 		if (game_sound.sound_playing && game_sound.sound_initialized) {
-			rc = snd_pcm_writei(handle, game_sound.sound_buffer,
-					    frames);
-			if (rc < 0) {
-				printf("%s\n", snd_strerror(rc));
-				snd_pcm_prepare(handle);
+			i32 err = snd_pcm_writei(alsa.sound_handle,
+						 game_sound.sound_buffer,
+						 alsa.frames);
+			if (err < 0) {
+				printf("%s\n", snd_strerror(err));
+				snd_pcm_prepare(alsa.sound_handle);
 			}
 		}
 
-		XPutImage(display, window, gc, ximage, 0, 0, 0, 0, WIN_WIDTH,
-			  WIN_HEIGHT);
+		XPutImage(window_state.display, window_state.window,
+			  window_state.gc, window_state.ximage, 0, 0, 0, 0,
+			  WIN_WIDTH, WIN_HEIGHT);
 
 		clock_gettime(CLOCK_REALTIME, &end);
 
@@ -161,18 +179,18 @@ int main()
 	}
 
 cleanup:
-	if (ximage) {
-		XDestroyImage(ximage);
+	if (window_state.ximage) {
+		XDestroyImage(window_state.ximage);
 	}
 
-	if (display) {
-		XDestroyWindow(display, window);
-		XCloseDisplay(display);
+	if (window_state.display) {
+		XDestroyWindow(window_state.display, window_state.window);
+		XCloseDisplay(window_state.display);
 	}
 
-	if (handle) {
-		snd_pcm_drain(handle);
-		snd_pcm_close(handle);
+	if (alsa.sound_handle) {
+		snd_pcm_drain(alsa.sound_handle);
+		snd_pcm_close(alsa.sound_handle);
 	}
 
 	if (game_sound.sound_buffer) {
@@ -239,22 +257,23 @@ size_t debug_platform_load_asset(const char file_path[], void *memory_location)
 	return result;
 }
 
-static i32 allocate_memory(Memory *memory)
+static StorageState allocate_temp_storage()
 {
+	StorageState storage        = {};
 	i32 temp_storage_size_bytes = 40 * 1024 * 1024;
 	assert(temp_storage_size_bytes % 64 == 0);
-	memory->temp_storage = aligned_alloc(64, temp_storage_size_bytes);
-	if (!memory->temp_storage) {
+	storage.temp_storage = aligned_alloc(64, temp_storage_size_bytes);
+	if (!storage.temp_storage) {
 		fprintf(stderr, "Failed to temp storage for game\n");
-		return -1;
+		storage.err = -1;
+
+		return storage;
 	}
-	memory->temp_storage_size     = temp_storage_size_bytes;
-	memory->temp_next_load_offset = 0;
-	memset(memory->temp_storage, 0, memory->temp_storage_size);
 
-	memory->is_initialized = false;
+	storage.temp_storage_size = temp_storage_size_bytes;
+	memset(storage.temp_storage, 0, storage.temp_storage_size);
 
-	return 0;
+	return storage;
 }
 
 static void handle_key_press(XKeyEvent *xkey, Input *input)
@@ -297,101 +316,123 @@ static void handle_key_release(XKeyEvent *xkey, Input *input)
 	}
 }
 
-static i32 init_sound(Sound *game_sound, snd_pcm_hw_params_t **params,
-		      snd_pcm_t **handle, snd_pcm_uframes_t *frames)
+static AlsaState init_sound(void)
 {
-	i32 rc = snd_pcm_open(handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
+	AlsaState alsa              = {};
+	Sound game_sound            = {};
+	snd_pcm_hw_params_t *params = NULL;
+	snd_pcm_t *handle           = NULL;
+	snd_pcm_uframes_t frames    = 0;
+
+	i32 rc = snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
 	if (rc < 0) {
 		fprintf(stderr, "failed to open PCM device: %s\n",
 			snd_strerror(rc));
-		return -1;
+		alsa.err = -1;
+
+		return alsa;
 	}
 
-	snd_pcm_hw_params_alloca(params);
-	snd_pcm_hw_params_any(*handle, *params);
+	snd_pcm_hw_params_alloca(&params);
+	snd_pcm_hw_params_any(handle, params);
 
 	/* Interleaved mode */
-	snd_pcm_hw_params_set_access(*handle, *params,
+	snd_pcm_hw_params_set_access(handle, params,
 				     SND_PCM_ACCESS_RW_INTERLEAVED);
 
 	/* Stereo PCM 16 bit little-endian */
-	snd_pcm_hw_params_set_format(*handle, *params, SND_PCM_FORMAT_S16_LE);
+	snd_pcm_hw_params_set_format(handle, params, SND_PCM_FORMAT_S16_LE);
 
-	snd_pcm_hw_params_set_channels(*handle, *params, 2);
+	snd_pcm_hw_params_set_channels(handle, params, 2);
 
 	i32 dir         = 0;
 	u32 sample_rate = 44100;
-	snd_pcm_hw_params_set_rate_near(*handle, *params, &sample_rate, &dir);
+	snd_pcm_hw_params_set_rate_near(handle, params, &sample_rate, &dir);
 
 	/*
 	 * Amount of frames in 16.67 ms,
 	 * plus a little extra for some leeway
 	 */
-	*frames = 742;
+	frames = 742;
 
-	snd_pcm_hw_params_set_period_size_near(*handle, *params, frames, &dir);
+	snd_pcm_hw_params_set_period_size_near(handle, params, &frames, &dir);
 
-	rc = snd_pcm_hw_params(*handle, *params);
+	rc = snd_pcm_hw_params(handle, params);
 	if (rc < 0) {
 		fprintf(stderr, "failed to set hw parameters: %s\n",
 			snd_strerror(rc));
+		alsa.err = -1;
 
-		return -1;
+		return alsa;
 	}
 
-	snd_pcm_hw_params_get_period_size(*params, frames, &dir);
+	snd_pcm_hw_params_get_period_size(params, &frames, &dir);
 	/*
 	 * Size of buffer should be one period
 	 * with two channels and two bytes per sample.
 	 */
-	game_sound->sound_buffer_size = *frames * 2 * 2;
-	game_sound->sound_buffer      = malloc(game_sound->sound_buffer_size);
-	if (!game_sound->sound_buffer) {
+	game_sound.sound_buffer_size = frames * 2 * 2;
+	game_sound.sound_buffer      = malloc(game_sound.sound_buffer_size);
+	if (!game_sound.sound_buffer) {
 		fprintf(stderr, "Failed to allocate sound buffer\n");
-		return -1;
+		alsa.err = -1;
+
+		return alsa;
 	}
-	memset(game_sound->sound_buffer, 0, game_sound->sound_buffer_size);
+	memset(game_sound.sound_buffer, 0, game_sound.sound_buffer_size);
 
 	for (i32 i = 0; i < 10; i++) {
-		rc = snd_pcm_writei(*handle, game_sound->sound_buffer, *frames);
+		rc = snd_pcm_writei(handle, game_sound.sound_buffer, frames);
 		if (rc < 0) {
 			printf("%s\n", snd_strerror(rc));
-			snd_pcm_prepare(*handle);
+			snd_pcm_prepare(handle);
 		}
 	}
 
-	return 0;
+	game_sound.sound_initialized = true;
+	alsa.game_sound              = game_sound;
+	alsa.sound_handle            = handle;
+	alsa.frames                  = frames;
+
+	return alsa;
 }
 
-static i32 init_window(Display **display, Visual **visual, Window *window,
-		       GC *gc, XImage **ximage, char **image_buffer)
+static WindowState init_window(void)
 {
-	*display = XOpenDisplay(NULL);
-	if (!display) {
+	WindowState window_state = {};
+
+	window_state.display = XOpenDisplay(NULL);
+	if (!window_state.display) {
 		fprintf(stderr, "Cannot open display\n");
-		return -1;
+		window_state.err = -1;
+
+		return window_state;
 	}
 
-	u32 screen = DefaultScreen(*display);
+	Display *display = window_state.display;
 
-	u32 depth = DefaultDepth(*display, screen);
+	u32 screen = DefaultScreen(display);
 
-	*visual = DefaultVisual(*display, screen);
+	u32 depth = DefaultDepth(display, screen);
 
-	*window = XCreateSimpleWindow(*display, RootWindow(*display, screen),
-				      WIN_X, WIN_Y, WIN_WIDTH, WIN_HEIGHT,
-				      WIN_BORDER, BlackPixel(*display, screen),
-				      BlackPixel(*display, screen));
+	window_state.visual = DefaultVisual(display, screen);
 
-	*gc = DefaultGC(*display, screen);
+	window_state.window = XCreateSimpleWindow(
+		display, RootWindow(display, screen), WIN_X, WIN_Y, WIN_WIDTH,
+		WIN_HEIGHT, WIN_BORDER, BlackPixel(display, screen),
+		BlackPixel(display, screen));
 
-	Atom delete_window = XInternAtom(*display, "WM_DELETE_WINDOW", 0);
-	XSetWMProtocols(*display, *window, &delete_window, 1);
+	window_state.gc = DefaultGC(display, screen);
 
-	XSelectInput(*display, *window,
+	Window window = window_state.window;
+
+	Atom delete_window = XInternAtom(display, "WM_DELETE_WINDOW", 0);
+	XSetWMProtocols(display, window, &delete_window, 1);
+
+	XSelectInput(display, window,
 		     ExposureMask | KeyPressMask | KeyReleaseMask);
 
-	XMapWindow(*display, *window);
+	XMapWindow(display, window);
 
 	i32 video_buffer_size = WIN_WIDTH * WIN_HEIGHT * 4;
 	assert(video_buffer_size % 64 == 0);
@@ -399,17 +440,20 @@ static i32 init_window(Display **display, Visual **visual, Window *window,
 	char *image_buffer_tmp = aligned_alloc(64, video_buffer_size);
 	if (!image_buffer_tmp) {
 		fprintf(stderr, "Failed to allocate image buffer\n");
-		return -1;
+		window_state.err = -1;
+
+		return window_state;
 	}
 
 	memset(image_buffer_tmp, 0, video_buffer_size);
-	*image_buffer = image_buffer_tmp;
+	window_state.image_buffer = image_buffer_tmp;
 
 	/* TODO: Explore using Shm for this */
-	*ximage = XCreateImage(*display, *visual, depth, ZPixmap, 0,
-			       *image_buffer, WIN_WIDTH, WIN_HEIGHT, 32, 0);
+	window_state.ximage = XCreateImage(
+		display, window_state.visual, depth, ZPixmap, 0,
+		window_state.image_buffer, WIN_WIDTH, WIN_HEIGHT, 32, 0);
 
-	XkbSetDetectableAutoRepeat(*display, true, NULL);
+	XkbSetDetectableAutoRepeat(display, true, NULL);
 
-	return 0;
+	return window_state;
 }
