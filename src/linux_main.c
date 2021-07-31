@@ -211,7 +211,7 @@ i32 debug_platform_stream_audio(const char file_path[], Sound *game_sound)
 {
 	if (!game_sound->stream) {
 		game_sound->stream = fopen(file_path, "r");
-		printf("Opening file\n");
+		printf("%s\n", "Opening file");
 		if (game_sound->stream == NULL) {
 			return -1;
 		}
