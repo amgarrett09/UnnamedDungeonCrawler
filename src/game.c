@@ -23,7 +23,7 @@ static const i32 SCREEN_HEIGHT_PIXELS = SCREEN_HEIGHT_TILES * TILE_HEIGHT;
 static const i32 SCREEN_WIDTH_PIXELS  = SCREEN_WIDTH_TILES * TILE_WIDTH;
 
 static i32 bit_scan_forward_u(u32 number);
-static bool check_and_prep_screen_transition(WorldState *world_state,
+static void check_and_prep_screen_transition(WorldState *world_state,
 					     PlayerState *player_state);
 static i32 convert_tile_to_pixel(i32 tile_value, CoordDimension dimension);
 static void display_bitmap_tile(i32 *image_buffer, Bitmap *bmp, i32 tile_number,
@@ -39,8 +39,6 @@ static void handle_player_collision(WorldState *world_state,
 				    ScreenState *screen_state);
 static void hot_tile_push(ScreenState *screen_state, i32 tile_x, i32 tile_y);
 static void play_sound(Sound *game_sound);
-static void render_foreground_tiles(i32 *image_buffer, TileMap *tile_map,
-				    void *tile_set, i32 x_offset, i32 y_offset);
 static void render_hot_tiles(ScreenState *screen_state,
 			     WorldState *world_state);
 static void render_player(i32 *image_buffer, PlayerState *player_state);
@@ -99,10 +97,10 @@ void game_update_and_render(Memory *memory, Input *input, Sound *game_sound,
 	}
 
 	if (player_state->move_counter <= 0) {
-		if (check_and_prep_screen_transition(world_state,
-						     player_state)) {
+		check_and_prep_screen_transition(world_state, player_state);
+
+		if (world_state->screen_transitioning)
 			return;
-		}
 
 		handle_player_collision(world_state, player_state, input,
 					screen_state);
@@ -141,7 +139,7 @@ static i32 bit_scan_forward_u(u32 number)
 	return index;
 }
 
-static bool check_and_prep_screen_transition(WorldState *world_state,
+static void check_and_prep_screen_transition(WorldState *world_state,
 					     PlayerState *player_state)
 {
 	TileMap *old_tile_map = world_state->current_tile_map;
@@ -153,30 +151,24 @@ static bool check_and_prep_screen_transition(WorldState *world_state,
 		world_state->transition_counter   = SCREEN_HEIGHT_PIXELS;
 		world_state->transition_direction = UPDIR;
 		world_state->next_tile_map = old_tile_map->top_connection;
-		return true;
 	} else if (tile_y == SCREEN_HEIGHT_TILES &&
 		   old_tile_map->bottom_connection) {
 		world_state->screen_transitioning = true;
 		world_state->transition_counter   = SCREEN_HEIGHT_PIXELS;
 		world_state->transition_direction = DOWNDIR;
 		world_state->next_tile_map = old_tile_map->bottom_connection;
-		return true;
 	} else if (tile_x == -1 && old_tile_map->left_connection) {
 		world_state->screen_transitioning = true;
 		world_state->transition_counter   = SCREEN_WIDTH_PIXELS;
 		world_state->transition_direction = LEFTDIR;
 		world_state->next_tile_map = old_tile_map->left_connection;
-		return true;
 	} else if (tile_x == SCREEN_WIDTH_TILES &&
 		   old_tile_map->right_connection) {
 		world_state->screen_transitioning = true;
 		world_state->transition_counter   = SCREEN_WIDTH_PIXELS;
 		world_state->transition_direction = RIGHTDIR;
 		world_state->next_tile_map = old_tile_map->right_connection;
-		return true;
 	}
-
-	return false;
 }
 
 static i32 convert_tile_to_pixel(i32 tile_value, CoordDimension dimension)
@@ -483,37 +475,12 @@ static void play_sound(Sound *game_sound)
 	}
 }
 
-static void render_foreground_tiles(i32 *image_buffer, TileMap *tile_map,
-				    void *tile_set, i32 x_offset, i32 y_offset)
-{
-	i32 *foreground_tiles = tile_map->foreground_tiles;
-	i32 len               = tile_map->foreground_tiles_length;
-	for (i32 i = 0; i < len; i++) {
-		i32 tile_data   = foreground_tiles[i];
-		i32 target_x    = (tile_data & 0xFF000000) >> 24;
-		i32 target_y    = (tile_data & 0x00FF0000) >> 16;
-		i32 tile_number = (tile_data & 0x0000FFFF);
-
-		target_x *= TILE_WIDTH;
-		target_y *= TILE_HEIGHT;
-
-		display_bitmap_tile(image_buffer, tile_set, tile_number,
-				    target_x + x_offset, target_y + y_offset,
-				    TILE_WIDTH, TILE_HEIGHT, false);
-	}
-}
-
 static void render_hot_tiles(ScreenState *screen_state, WorldState *world_state)
 {
-	i32 *background_map =
-		(i32 *)world_state->current_tile_map->background_map;
+	i32 *tile_map        = (i32 *)world_state->current_tile_map->tile_map;
 	i32 *hot_tiles       = screen_state->hot_tiles;
 	i32 hot_tiles_length = screen_state->hot_tiles_length;
 	i32 *image_buffer    = screen_state->image_buffer;
-
-	i32 *foreground_tiles = world_state->current_tile_map->foreground_tiles;
-	i32 foreground_tiles_length =
-		world_state->current_tile_map->foreground_tiles_length;
 
 	if (!hot_tiles_length)
 		return;
@@ -523,31 +490,20 @@ static void render_hot_tiles(ScreenState *screen_state, WorldState *world_state)
 		i32 tile_x = (data & 0xFFFF0000) >> 24;
 		i32 tile_y = data & 0x0000FFFF;
 
-		i32 tile_number =
-			background_map[tile_y * SCREEN_WIDTH_TILES + tile_x];
-		i32 target_y = tile_y * TILE_HEIGHT;
-		i32 target_x = tile_x * TILE_WIDTH;
+		i32 tile_data = tile_map[tile_y * SCREEN_WIDTH_TILES + tile_x];
+		i32 target_y  = tile_y * TILE_HEIGHT;
+		i32 target_x  = tile_x * TILE_WIDTH;
+
+		i32 bg_tile_number = (tile_data & 0xFFFF0000) >> 16;
+		i32 fg_tile_number = tile_data & 0xFFFF;
 
 		display_bitmap_tile(image_buffer, world_state->tile_set,
-				    tile_number, target_x, target_y, TILE_WIDTH,
-				    TILE_HEIGHT, false);
-
-		/*
-		 * This actually performs fine even with an entire screen full
-		 * of foreground tiles, likely due to good cache locality
-		 */
-		for (i32 j = 0; j < foreground_tiles_length; j++) {
-			i32 value        = foreground_tiles[j];
-			i32 foreground_x = (value & 0xFF000000) >> 24;
-			i32 foreground_y = (value & 0x00FF0000) >> 16;
-			i32 tile_number  = (value & 0xFFFF);
-
-			if (foreground_x == tile_x && foreground_y == tile_y) {
-				display_bitmap_tile(
-					image_buffer, world_state->tile_set,
-					tile_number, target_x, target_y,
-					TILE_WIDTH, TILE_HEIGHT, false);
-			}
+				    bg_tile_number, target_x, target_y,
+				    TILE_WIDTH, TILE_HEIGHT, false);
+		if (fg_tile_number) {
+			display_bitmap_tile(image_buffer, world_state->tile_set,
+					    fg_tile_number, target_x, target_y,
+					    TILE_WIDTH, TILE_HEIGHT, false);
 		}
 	}
 
@@ -607,24 +563,27 @@ static void render_tile_map(i32 *image_buffer, TileMap *tile_map,
 		return;
 
 	/* Background tiles */
-	i32 *background_map = (i32 *)tile_map->background_map;
+	i32 *tiles = (i32 *)tile_map->tile_map;
 	for (i32 row = 0; row < SCREEN_HEIGHT_TILES; row++) {
 		for (i32 column = 0; column < SCREEN_WIDTH_TILES; column++) {
 			i32 target_y = row * TILE_HEIGHT;
 			i32 target_x = column * TILE_WIDTH;
-			i32 tile_number =
-				background_map[row * SCREEN_WIDTH_TILES +
-					       column];
+			i32 tile_data =
+				tiles[row * SCREEN_WIDTH_TILES + column];
+			i32 bg_tile_number = (tile_data & 0xFFFF0000) >> 16;
+			i32 fg_tile_number = tile_data & 0xFFFF;
 
-			display_bitmap_tile(image_buffer, tile_set, tile_number,
-					    target_x + x_offset,
+			display_bitmap_tile(image_buffer, tile_set,
+					    bg_tile_number, target_x + x_offset,
+					    target_y + y_offset, TILE_WIDTH,
+					    TILE_HEIGHT, false);
+
+			display_bitmap_tile(image_buffer, tile_set,
+					    fg_tile_number, target_x + x_offset,
 					    target_y + y_offset, TILE_WIDTH,
 					    TILE_HEIGHT, false);
 		}
 	}
-
-	render_foreground_tiles(image_buffer, tile_map, tile_set, x_offset,
-				y_offset);
 }
 
 /*

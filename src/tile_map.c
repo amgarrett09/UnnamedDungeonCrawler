@@ -194,14 +194,12 @@ static void tm__set_tile_map_value(i32 x, i32 y, i32 layer, i32 tile_number,
 {
 	switch (layer) {
 	case 0:
-		tile_map->background_map[y][x] = tile_number;
+		tile_map->tile_map[y][x] = (tile_number & 0xFFFF) << 16;
 		break;
 	case 1: {
 
-		i32 len = tile_map->foreground_tiles_length;
-		tile_map->foreground_tiles[len] = ((x & 0xFF) << 24) |
-			((y & 0xFF) << 16) | (tile_number & 0xFFFF);
-		tile_map->foreground_tiles_length += 1;
+		tile_map->tile_map[y][x] =
+			tile_map->tile_map[y][x] | tile_number;
 		break;
 	}
 	case 2:

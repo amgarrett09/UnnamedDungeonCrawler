@@ -101,20 +101,13 @@ typedef struct {
 } PlayerState;
 
 typedef struct TileMap {
-	i32 background_map[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
-	/*
-	 * There usually won't be a screen full of foreground tiles, so
-	 * to avoid looping through whole screen size, this is a 1D array with
-	 * values represented like such:
-	 * (x_coord << 24) | (y_coord << 16) | tile_number
-	 */
-	i32 foreground_tiles[SCREEN_HEIGHT_TILES * SCREEN_WIDTH_TILES];
+	/* Format for tile map: (background_tile << 16) | foreground_tile */
+	i32 tile_map[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
 	i32 collision_map[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
 	struct TileMap *top_connection;
 	struct TileMap *right_connection;
 	struct TileMap *bottom_connection;
 	struct TileMap *left_connection;
-	i32 foreground_tiles_length;
 } TileMap;
 
 typedef struct {
