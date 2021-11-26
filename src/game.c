@@ -38,7 +38,6 @@ static void handle_player_collision(WorldState *world_state,
 				    PlayerState *player_state, Input *input,
 				    ScreenState *screen_state);
 static void hot_tile_push(ScreenState *screen_state, i32 tile_x, i32 tile_y);
-static void play_sound(Sound *game_sound);
 static void render_hot_tiles(ScreenState *screen_state,
 			     WorldState *world_state);
 static void render_player(i32 *image_buffer, PlayerState *player_state);
@@ -82,14 +81,12 @@ void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt)
 			0);
 }
 
-void game_update_and_render(Memory *memory, Input *input, Sound *game_sound,
+void game_update_and_render(Memory *memory, Input *input,
 			    ScreenState *screen_state)
 {
 	PlayerState *player_state = &memory->player_state;
 	WorldState *world_state   = &memory->world_state;
 	i32 *image_buffer         = screen_state->image_buffer;
-
-	play_sound(game_sound);
 
 	if (world_state->screen_transitioning) {
 		transition_screens(image_buffer, player_state, world_state);
@@ -462,17 +459,6 @@ static void move_player(PlayerState *player_state, ScreenState *screen_state)
 	}
 
 	player_state->move_counter -= player_state->speed;
-}
-
-static void play_sound(Sound *game_sound)
-{
-	if (game_sound->sound_initialized && game_sound->sound_playing) {
-		i32 rc = debug_platform_stream_audio("resources/test.wav",
-						     game_sound);
-		if (rc <= 0) {
-			game_sound->sound_playing = false;
-		}
-	}
 }
 
 static void render_hot_tiles(ScreenState *screen_state, WorldState *world_state)

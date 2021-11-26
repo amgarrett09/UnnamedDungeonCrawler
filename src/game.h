@@ -144,7 +144,7 @@ typedef struct {
 } Sound;
 
 void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt);
-void game_update_and_render(Memory *memory, Input *input, Sound *game_sound,
+void game_update_and_render(Memory *memory, Input *input,
 			    ScreenState *screen_state);
 
 /*

@@ -48,23 +48,20 @@ as "decoupled" as possible to make sure writing ports stays easy.
 
 ## Compiling
 
-Currently there's only a Linux version of this engine/game. 
+There is currently only a Linux version, but since we're using SDL, making
+it cross-platform in the future will be pretty simple. This readme will update
+when compiling on other platforms is available.
 
-To compile and run on Linux, just make sure you have ALSA and X11. ALSA is in 
-pretty much any Linux kernel version since 2004. X11 is included in virtually 
-every Linux distribution. 
-
-You may need to install some development packages to get access to the X11
-and ALSA header files though.
+You basically just need to have SDL and clang.
 
 On Debian
 ```
-sudo apt install libx11-dev libxt-dev libasound2-dev
+sudo apt install clang libsdl2-2.0 libsdl2-dev
 ```
 
 One you have the dependencies, simply run
 
-`./linux_build.sh`
+`./sdl_build.sh`
 
 in the main project folder. The executable can then be found in the `build` 
 directory.
