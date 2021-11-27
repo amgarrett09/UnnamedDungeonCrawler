@@ -30,7 +30,7 @@
 #define SCREEN_HEIGHT_TILES 20
 #define MAX_TILE_MAPS 64
 #define SAMPLES_PER_SECOND 48000
-#define TARGET_FRAME_RATE 60
+#define RING_BUFFER_SIZE 2048
 
 typedef int8_t i8;
 typedef int16_t i16;
@@ -139,12 +139,11 @@ typedef struct {
 } ScreenState;
 
 typedef struct {
-	char *sound_buffer;
-	FILE *stream;
-	size_t sound_buffer_size;
-	bool sound_initialized;
-	bool sound_playing;
-} Sound;
+	i32 size;
+	i32 write_cursor;
+	i32 play_cursor;
+	void *data;
+} AudioRingBuffer;
 
 void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt);
 void game_update_and_render(Memory *memory, Input *input,
@@ -152,8 +151,7 @@ void game_update_and_render(Memory *memory, Input *input,
 
 /*
  * These are defined by platform layer.
- * We'll probably use a different solution later on.
  */
-i32 debug_platform_stream_audio(const char file_path[], Sound *game_sound);
-
 size_t debug_platform_load_asset(const char file_path[], void *memory_location);
+void lock_audio();
+void unlock_audio();

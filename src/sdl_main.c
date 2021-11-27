@@ -98,12 +98,18 @@ int main()
 
 	screen_state.image_buffer = (i32 *)image_buffer;
 
+	AudioRingBuffer audio_ring_buffer = {.size         = RING_BUFFER_SIZE,
+					     .write_cursor = 0,
+					     .play_cursor  = 0,
+					     .data = malloc(RING_BUFFER_SIZE)};
+	memset(audio_ring_buffer.data, 0, RING_BUFFER_SIZE);
+
 	SDL_AudioSpec audio_settings = {.freq     = SAMPLES_PER_SECOND,
 					.format   = AUDIO_S16SYS,
 					.channels = 2,
-					.samples  = SAMPLES_PER_SECOND /
-						(TARGET_FRAME_RATE / 2),
-					.callback = &sdl_audio_callback};
+					.samples  = RING_BUFFER_SIZE / 2,
+					.callback = &sdl_audio_callback,
+					.userdata = (void *)&audio_ring_buffer};
 
 	SDL_OpenAudio(&audio_settings, 0);
 
@@ -198,11 +204,47 @@ cleanup:
 	if (image_buffer) {
 		free(image_buffer);
 	}
+	if (audio_ring_buffer.data) {
+		free(audio_ring_buffer.data);
+	}
 
 	SDL_CloseAudio();
 	SDL_Quit();
 
 	return ret;
+}
+
+void lock_audio() {
+	SDL_LockAudio();
+}
+void unlock_audio() {
+	SDL_UnlockAudio();
+}
+
+size_t debug_platform_load_asset(const char file_path[], void *memory_location)
+{
+	FILE *file = fopen(file_path, "rb");
+
+	if (file == NULL) {
+		fprintf(stderr, "Failed to open asset.\n");
+		return 0;
+	}
+
+	fseek(file, 0, SEEK_END);
+	size_t file_size = ftell(file);
+	rewind(file);
+
+	size_t result = fread(memory_location, 1, file_size, file);
+
+	if (result != file_size) {
+		fclose(file);
+		fprintf(stderr, "Error reading asset\n");
+		return 0;
+	}
+
+	fclose(file);
+
+	return result;
 }
 
 static void handle_window_event(SDL_Event *event)
@@ -236,31 +278,6 @@ static StorageState allocate_temp_storage()
 	return storage;
 }
 
-size_t debug_platform_load_asset(const char file_path[], void *memory_location)
-{
-	FILE *file = fopen(file_path, "rb");
-
-	if (file == NULL) {
-		fprintf(stderr, "Failed to open asset.\n");
-		return 0;
-	}
-
-	fseek(file, 0, SEEK_END);
-	size_t file_size = ftell(file);
-	rewind(file);
-
-	size_t result = fread(memory_location, 1, file_size, file);
-
-	if (result != file_size) {
-		fclose(file);
-		fprintf(stderr, "Error reading asset\n");
-		return 0;
-	}
-
-	fclose(file);
-
-	return result;
-}
 
 static void handle_key_press(SDL_Keycode code, Input *input)
 {
@@ -302,8 +319,27 @@ static void handle_key_release(SDL_Keycode code, Input *input)
 	}
 }
 
-static void sdl_audio_callback(void *user_data, unsigned char *audio_buffer,
+static void sdl_audio_callback(void *user_data, unsigned char *audio_data,
 			       i32 length)
 {
-	memset(audio_buffer, 0, length);
+	AudioRingBuffer *ring_buffer = (AudioRingBuffer *)user_data;
+
+	i32 region_1_size = length;
+	i32 region_2_size = 0;
+
+	if (ring_buffer->play_cursor + length > ring_buffer->size) {
+		region_1_size = ring_buffer->size - ring_buffer->play_cursor;
+		region_2_size = length - region_1_size;
+	}
+
+	memcpy(audio_data,
+	       (unsigned char *)ring_buffer->data + ring_buffer->play_cursor,
+	       region_1_size);
+	memcpy(&audio_data[region_1_size], ring_buffer->data, region_2_size);
+
+	ring_buffer->play_cursor =
+		(ring_buffer->play_cursor + length) % ring_buffer->size;
+	ring_buffer->write_cursor =
+		(ring_buffer->play_cursor + 2048) % ring_buffer->size;
 }
+
