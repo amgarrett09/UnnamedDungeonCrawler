@@ -16,6 +16,7 @@
  */
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -26,21 +27,20 @@
 #include "tile_map.c"
 #include "game.c"
 
-#define HEIGHT 720
-#define WIDTH 1280
-
 typedef struct StorageState {
 	void *temp_storage;
 	size_t temp_storage_size;
 	i32 err;
 } StorageState;
 
-static const int image_buffer_size  = WIDTH * HEIGHT * 4;
-static const int image_buffer_pitch = WIDTH * 4;
+static const i32 image_buffer_size  = WIN_WIDTH * WIN_HEIGHT * 4;
+static const i32 image_buffer_pitch = WIN_WIDTH * 4;
 
 static void handle_key_press(SDL_Keycode code, Input *input);
 static void handle_key_release(SDL_Keycode code, Input *input);
 static void handle_window_event(SDL_Event *event);
+static void sdl_audio_callback(void *user_data, unsigned char *audio_buffer,
+			       i32 length);
 static StorageState allocate_temp_storage();
 
 int main()
@@ -53,16 +53,16 @@ int main()
 
 	static Memory game_memory       = {};
 	static ScreenState screen_state = {};
-	int dt                          = 16;
+	i32 dt                          = 16;
 
-	if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
 		SDL_Log("Failed to init SDL: %s", SDL_GetError());
 		ret = 1;
 		goto cleanup;
 	}
 
-	window = SDL_CreateWindow("Unnamed Dungeon Crawler", 10, 10, WIDTH,
-				  HEIGHT, SDL_WINDOW_RESIZABLE);
+	window = SDL_CreateWindow("Unnamed Dungeon Crawler", 10, 10, WIN_WIDTH,
+				  WIN_HEIGHT, SDL_WINDOW_RESIZABLE);
 
 	if (!window) {
 		SDL_Log("Failed to create window: %s", SDL_GetError());
@@ -79,7 +79,8 @@ int main()
 	}
 
 	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888,
-				    SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
+				    SDL_TEXTUREACCESS_STREAMING, WIN_WIDTH,
+				    WIN_HEIGHT);
 
 	if (!texture) {
 		SDL_Log("Failed to create screen texture: %s", SDL_GetError());
@@ -90,12 +91,27 @@ int main()
 	image_buffer = malloc(image_buffer_size);
 
 	if (!image_buffer) {
-		SDL_Log("Failed to allocate image_buffer: %s", SDL_GetError());
+		SDL_Log("%s", "Failed to allocate image buffer");
 		ret = 1;
 		goto cleanup;
 	}
 
 	screen_state.image_buffer = (i32 *)image_buffer;
+
+	SDL_AudioSpec audio_settings = {.freq     = SAMPLES_PER_SECOND,
+					.format   = AUDIO_S16SYS,
+					.channels = 2,
+					.samples  = SAMPLES_PER_SECOND /
+						(TARGET_FRAME_RATE / 2),
+					.callback = &sdl_audio_callback};
+
+	SDL_OpenAudio(&audio_settings, 0);
+
+	if (audio_settings.format != AUDIO_S16SYS) {
+		SDL_Log("%s", "Got wrong audio format");
+		ret = 1;
+		goto cleanup;
+	}
 
 	StorageState storage = allocate_temp_storage();
 
@@ -118,8 +134,9 @@ int main()
 
 	/* MAIN LOOP */
 	bool should_quit = false;
-	clock_gettime(CLOCK_REALTIME, &start);
 	game_initialize_memory(&game_memory, &screen_state, dt);
+	clock_gettime(CLOCK_REALTIME, &start);
+	SDL_PauseAudio(0);
 
 	while (!should_quit) {
 		SDL_Event event;
@@ -182,6 +199,7 @@ cleanup:
 		free(image_buffer);
 	}
 
+	SDL_CloseAudio();
 	SDL_Quit();
 
 	return ret;
@@ -282,4 +300,10 @@ static void handle_key_release(SDL_Keycode code, Input *input)
 	default:
 		break;
 	}
+}
+
+static void sdl_audio_callback(void *user_data, unsigned char *audio_buffer,
+			       i32 length)
+{
+	memset(audio_buffer, 0, length);
 }

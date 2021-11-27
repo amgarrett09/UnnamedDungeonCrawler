@@ -350,7 +350,7 @@ static void hot_tile_push(ScreenState *screen_state, i32 tile_x, i32 tile_y)
 	    tile_y >= SCREEN_HEIGHT_TILES)
 		return;
 
-	i32 value = ((tile_x & 0xFFFF) << 24) | (tile_y & 0xFFFF);
+	i32 value = ((tile_x & 0xFFFF) << 16) | (tile_y & 0xFFFF);
 
 	screen_state->hot_tiles[screen_state->hot_tiles_length++] = value;
 }
@@ -473,7 +473,7 @@ static void render_hot_tiles(ScreenState *screen_state, WorldState *world_state)
 
 	for (i32 i = 0; i < hot_tiles_length; i++) {
 		i32 data   = hot_tiles[i];
-		i32 tile_x = (data & 0xFFFF0000) >> 24;
+		i32 tile_x = (data & 0xFFFF0000) >> 16;
 		i32 tile_y = data & 0x0000FFFF;
 
 		i32 tile_data = tile_map[tile_y * SCREEN_WIDTH_TILES + tile_x];
@@ -548,7 +548,6 @@ static void render_tile_map(i32 *image_buffer, TileMap *tile_map,
 	if (!tile_set | !tile_map | !image_buffer)
 		return;
 
-	/* Background tiles */
 	i32 *tiles = (i32 *)tile_map->tile_map;
 	for (i32 row = 0; row < SCREEN_HEIGHT_TILES; row++) {
 		for (i32 column = 0; column < SCREEN_WIDTH_TILES; column++) {

@@ -29,6 +29,8 @@
 #define SCREEN_WIDTH_TILES 40
 #define SCREEN_HEIGHT_TILES 20
 #define MAX_TILE_MAPS 64
+#define SAMPLES_PER_SECOND 48000
+#define TARGET_FRAME_RATE 60
 
 typedef int8_t i8;
 typedef int16_t i16;
@@ -130,6 +132,7 @@ typedef struct {
 } Memory;
 
 typedef struct {
+	/* Format for hot_tiles: (tile_x << 16) | tile_y */
 	i32 hot_tiles[SCREEN_HEIGHT_TILES * SCREEN_WIDTH_TILES];
 	i32 *image_buffer;
 	i32 hot_tiles_length;
