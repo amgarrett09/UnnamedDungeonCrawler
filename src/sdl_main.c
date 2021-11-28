@@ -35,12 +35,12 @@ typedef struct StorageState {
 
 static const i32 image_buffer_size  = WIN_WIDTH * WIN_HEIGHT * 4;
 static const i32 image_buffer_pitch = WIN_WIDTH * 4;
+static const i32 target_sound_buffer_size = 
+	(SAMPLES_PER_SECOND / 60) * BYTES_PER_SAMPLE * 5;
 
 static void handle_key_press(SDL_Keycode code, Input *input);
 static void handle_key_release(SDL_Keycode code, Input *input);
 static void handle_window_event(SDL_Event *event);
-static void sdl_audio_callback(void *user_data, unsigned char *audio_buffer,
-			       i32 length);
 static StorageState allocate_temp_storage();
 
 int main()
@@ -49,11 +49,19 @@ int main()
 	SDL_Renderer *renderer = NULL;
 	SDL_Texture *texture   = NULL;
 	void *image_buffer     = NULL;
+	void *sound_buffer     = NULL;
 	int ret                = 0;
 
 	static Memory game_memory       = {};
 	static ScreenState screen_state = {};
 	i32 dt                          = 16;
+
+	/* Test sound stuff */
+	i32 samples_per_second      = 44100;
+	i32 hz                      = 256;
+	u32 sample_index            = 0;
+	i32 square_wave_period      = samples_per_second / hz;
+	i32 half_square_wave_period = square_wave_period / 2;
 
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
 		SDL_Log("Failed to init SDL: %s", SDL_GetError());
@@ -98,30 +106,30 @@ int main()
 
 	screen_state.image_buffer = (i32 *)image_buffer;
 
-	AudioRingBuffer audio_ring_buffer = {.size         = RING_BUFFER_SIZE,
-					     .write_cursor = 0,
-					     .play_cursor  = 0,
-					     .data = malloc(RING_BUFFER_SIZE)};
-	memset(audio_ring_buffer.data, 0, RING_BUFFER_SIZE);
+	StorageState storage = allocate_temp_storage();
+
+	if (storage.err < 0) {
+		ret = 1;
+		goto cleanup;
+	}
+
+	sound_buffer = malloc(target_sound_buffer_size);
+
+	if (!sound_buffer) {
+		SDL_Log("%s", "Failed to allocate sound buffer");
+		ret = 1;
+		goto cleanup;
+	}
 
 	SDL_AudioSpec audio_settings = {.freq     = SAMPLES_PER_SECOND,
 					.format   = AUDIO_S16SYS,
 					.channels = 2,
-					.samples  = RING_BUFFER_SIZE / 2,
-					.callback = &sdl_audio_callback,
-					.userdata = (void *)&audio_ring_buffer};
+					.samples  = 1024};
 
 	SDL_OpenAudio(&audio_settings, 0);
 
 	if (audio_settings.format != AUDIO_S16SYS) {
 		SDL_Log("%s", "Got wrong audio format");
-		ret = 1;
-		goto cleanup;
-	}
-
-	StorageState storage = allocate_temp_storage();
-
-	if (storage.err < 0) {
 		ret = 1;
 		goto cleanup;
 	}
@@ -170,6 +178,27 @@ int main()
 			}
 		}
 
+		/* Test sound */
+		u32 queued_size = SDL_GetQueuedAudioSize(1);
+		i32 target_size = target_sound_buffer_size;
+		i32 bytes_to_write = target_size - (i32)queued_size;
+
+		if (bytes_to_write > 0) {
+			i16 *sample_out    = (i16 *)sound_buffer;
+			i32 sample_count   = bytes_to_write / BYTES_PER_SAMPLE;
+
+			for (int i = 0; i < sample_count; i++) {
+				i16 sample_value = ((sample_index++ /
+						     half_square_wave_period) %
+						    2)
+					? 16000
+					: -16000;
+				*sample_out++ = sample_value;
+				*sample_out++ = sample_value;
+			}
+			SDL_QueueAudio(1, sound_buffer, bytes_to_write);
+		}
+
 		game_update_and_render(&game_memory, &input, &screen_state);
 
 		SDL_UpdateTexture(texture, 0, image_buffer, image_buffer_pitch);
@@ -204,21 +233,15 @@ cleanup:
 	if (image_buffer) {
 		free(image_buffer);
 	}
-	if (audio_ring_buffer.data) {
-		free(audio_ring_buffer.data);
+
+	if (sound_buffer) {
+		free(sound_buffer);
 	}
 
 	SDL_CloseAudio();
 	SDL_Quit();
 
 	return ret;
-}
-
-void lock_audio() {
-	SDL_LockAudio();
-}
-void unlock_audio() {
-	SDL_UnlockAudio();
 }
 
 size_t debug_platform_load_asset(const char file_path[], void *memory_location)
@@ -278,7 +301,6 @@ static StorageState allocate_temp_storage()
 	return storage;
 }
 
-
 static void handle_key_press(SDL_Keycode code, Input *input)
 {
 	switch (code) {
@@ -318,28 +340,3 @@ static void handle_key_release(SDL_Keycode code, Input *input)
 		break;
 	}
 }
-
-static void sdl_audio_callback(void *user_data, unsigned char *audio_data,
-			       i32 length)
-{
-	AudioRingBuffer *ring_buffer = (AudioRingBuffer *)user_data;
-
-	i32 region_1_size = length;
-	i32 region_2_size = 0;
-
-	if (ring_buffer->play_cursor + length > ring_buffer->size) {
-		region_1_size = ring_buffer->size - ring_buffer->play_cursor;
-		region_2_size = length - region_1_size;
-	}
-
-	memcpy(audio_data,
-	       (unsigned char *)ring_buffer->data + ring_buffer->play_cursor,
-	       region_1_size);
-	memcpy(&audio_data[region_1_size], ring_buffer->data, region_2_size);
-
-	ring_buffer->play_cursor =
-		(ring_buffer->play_cursor + length) % ring_buffer->size;
-	ring_buffer->write_cursor =
-		(ring_buffer->play_cursor + 2048) % ring_buffer->size;
-}
-

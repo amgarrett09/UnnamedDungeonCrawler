@@ -29,8 +29,9 @@
 #define SCREEN_WIDTH_TILES 40
 #define SCREEN_HEIGHT_TILES 20
 #define MAX_TILE_MAPS 64
-#define SAMPLES_PER_SECOND 48000
-#define RING_BUFFER_SIZE 2048
+#define SAMPLES_PER_SECOND 44100
+#define BYTES_PER_SAMPLE 4
+#define TARGET_FRAME_RATE 60
 
 typedef int8_t i8;
 typedef int16_t i16;
@@ -153,5 +154,3 @@ void game_update_and_render(Memory *memory, Input *input,
  * These are defined by platform layer.
  */
 size_t debug_platform_load_asset(const char file_path[], void *memory_location);
-void lock_audio();
-void unlock_audio();
