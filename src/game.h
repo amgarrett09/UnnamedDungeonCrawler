@@ -140,11 +140,14 @@ typedef struct {
 } ScreenState;
 
 typedef struct {
-	i32 size;
-	i32 write_cursor;
-	i32 play_cursor;
-	void *data;
-} AudioRingBuffer;
+	void *sound_buffer;
+	i32 sound_buffer_size;
+	bool playing;
+} Sound;
+
+typedef struct {
+	FILE *fd;
+} FileStream;
 
 void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt);
 void game_update_and_render(Memory *memory, Input *input,
@@ -153,4 +156,6 @@ void game_update_and_render(Memory *memory, Input *input,
 /*
  * These are defined by platform layer.
  */
+i32 debug_platform_stream_audio(const char file_path[], FileStream *stream,
+				void *sound_buffer, i32 sound_buffer_size);
 size_t debug_platform_load_asset(const char file_path[], void *memory_location);

@@ -35,7 +35,7 @@ typedef struct StorageState {
 
 static const i32 image_buffer_size  = WIN_WIDTH * WIN_HEIGHT * 4;
 static const i32 image_buffer_pitch = WIN_WIDTH * 4;
-static const i32 target_sound_buffer_size = 
+static const i32 target_sound_buffer_size =
 	(SAMPLES_PER_SECOND / 60) * BYTES_PER_SAMPLE * 5;
 
 static void handle_key_press(SDL_Keycode code, Input *input);
@@ -48,20 +48,11 @@ int main()
 	SDL_Window *window     = NULL;
 	SDL_Renderer *renderer = NULL;
 	SDL_Texture *texture   = NULL;
-	void *image_buffer     = NULL;
-	void *sound_buffer     = NULL;
 	int ret                = 0;
 
 	static Memory game_memory       = {};
 	static ScreenState screen_state = {};
 	i32 dt                          = 16;
-
-	/* Test sound stuff */
-	i32 samples_per_second      = 44100;
-	i32 hz                      = 256;
-	u32 sample_index            = 0;
-	i32 square_wave_period      = samples_per_second / hz;
-	i32 half_square_wave_period = square_wave_period / 2;
 
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
 		SDL_Log("Failed to init SDL: %s", SDL_GetError());
@@ -96,15 +87,13 @@ int main()
 		goto cleanup;
 	}
 
-	image_buffer = malloc(image_buffer_size);
+	screen_state.image_buffer = (i32 *)malloc(image_buffer_size);
 
-	if (!image_buffer) {
+	if (!screen_state.image_buffer) {
 		SDL_Log("%s", "Failed to allocate image buffer");
 		ret = 1;
 		goto cleanup;
 	}
-
-	screen_state.image_buffer = (i32 *)image_buffer;
 
 	StorageState storage = allocate_temp_storage();
 
@@ -113,9 +102,11 @@ int main()
 		goto cleanup;
 	}
 
-	sound_buffer = malloc(target_sound_buffer_size);
+	Sound sound             = {};
+	sound.sound_buffer      = malloc(target_sound_buffer_size);
+	sound.sound_buffer_size = target_sound_buffer_size;
 
-	if (!sound_buffer) {
+	if (!sound.sound_buffer) {
 		SDL_Log("%s", "Failed to allocate sound buffer");
 		ret = 1;
 		goto cleanup;
@@ -139,7 +130,8 @@ int main()
 	game_memory.temp_next_load_offset = 0;
 	game_memory.is_initialized        = false;
 
-	Input input = {};
+	Input input       = {};
+	FileStream stream = {};
 
 	/* Setup timespecs to enforce a set framerate in main loop */
 	i64 frametime = 16666667;
@@ -151,6 +143,7 @@ int main()
 	game_initialize_memory(&game_memory, &screen_state, dt);
 	clock_gettime(CLOCK_REALTIME, &start);
 	SDL_PauseAudio(0);
+	sound.playing = true;
 
 	while (!should_quit) {
 		SDL_Event event;
@@ -179,29 +172,18 @@ int main()
 		}
 
 		/* Test sound */
-		u32 queued_size = SDL_GetQueuedAudioSize(1);
-		i32 target_size = target_sound_buffer_size;
-		i32 bytes_to_write = target_size - (i32)queued_size;
-
-		if (bytes_to_write > 0) {
-			i16 *sample_out    = (i16 *)sound_buffer;
-			i32 sample_count   = bytes_to_write / BYTES_PER_SAMPLE;
-
-			for (int i = 0; i < sample_count; i++) {
-				i16 sample_value = ((sample_index++ /
-						     half_square_wave_period) %
-						    2)
-					? 16000
-					: -16000;
-				*sample_out++ = sample_value;
-				*sample_out++ = sample_value;
-			}
-			SDL_QueueAudio(1, sound_buffer, bytes_to_write);
+		if (sound.playing) {
+			i32 rc = debug_platform_stream_audio(
+				"resources/test.wav", &stream,
+				sound.sound_buffer, sound.sound_buffer_size);
+			if (rc == 0)
+				sound.playing = false;
 		}
 
 		game_update_and_render(&game_memory, &input, &screen_state);
 
-		SDL_UpdateTexture(texture, 0, image_buffer, image_buffer_pitch);
+		SDL_UpdateTexture(texture, 0, (void *)screen_state.image_buffer,
+				  image_buffer_pitch);
 		SDL_RenderCopy(renderer, texture, 0, 0);
 		SDL_RenderPresent(renderer);
 
@@ -230,18 +212,55 @@ cleanup:
 		SDL_DestroyWindow(window);
 	}
 
-	if (image_buffer) {
-		free(image_buffer);
+	if (screen_state.image_buffer) {
+		free(screen_state.image_buffer);
 	}
 
-	if (sound_buffer) {
-		free(sound_buffer);
+	if (sound.sound_buffer) {
+		free(sound.sound_buffer);
+	}
+
+	if (stream.fd) {
+		fclose(stream.fd);
 	}
 
 	SDL_CloseAudio();
 	SDL_Quit();
 
 	return ret;
+}
+
+i32 debug_platform_stream_audio(const char file_path[], FileStream *stream,
+				void *sound_buffer, i32 sound_buffer_size)
+{
+	if (!stream->fd) {
+		stream->fd = fopen(file_path, "r");
+		printf("%s\n", "Opening file");
+		if (stream->fd == NULL) {
+			return -1;
+		}
+	}
+
+	u32 queued_size    = SDL_GetQueuedAudioSize(1);
+	i32 target_size    = sound_buffer_size;
+	i32 bytes_to_write = target_size - (i32)queued_size;
+
+	if (bytes_to_write > 0) {
+		size_t result =
+			fread(sound_buffer, 1, bytes_to_write, stream->fd);
+
+		if ((i32)result != bytes_to_write) {
+			fclose(stream->fd);
+			stream->fd = NULL;
+			return 0;
+		}
+
+		SDL_QueueAudio(1, sound_buffer, bytes_to_write);
+
+		return (i32)result;
+	}
+
+	return -1;
 }
 
 size_t debug_platform_load_asset(const char file_path[], void *memory_location)
