@@ -102,6 +102,12 @@ int main()
 		goto cleanup;
 	}
 
+	game_memory.temp_storage          = storage.temp_storage;
+	game_memory.temp_storage_size     = storage.temp_storage_size;
+	game_memory.temp_next_load_offset = 0;
+	game_memory.is_initialized        = false;
+
+
 	Sound sound             = {};
 	sound.sound_buffer      = malloc(target_sound_buffer_size);
 	sound.sound_buffer_size = target_sound_buffer_size;
@@ -124,11 +130,6 @@ int main()
 		ret = 1;
 		goto cleanup;
 	}
-
-	game_memory.temp_storage          = storage.temp_storage;
-	game_memory.temp_storage_size     = storage.temp_storage_size;
-	game_memory.temp_next_load_offset = 0;
-	game_memory.is_initialized        = false;
 
 	Input input       = {};
 	FileStream stream = {};

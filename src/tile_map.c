@@ -92,6 +92,7 @@ static TileMapParseState tm__get_tile_map_count(TileMapParseState parse_state,
 	return parse_state;
 }
 
+/* TODO: Prevent out-of-bounds indexes */
 static TileMapParseState
 tm__handle_tile_map_metadata(TileMapParseState parse_state, Memory *memory,
 			     i32 state, i32 tile_map_index)
@@ -132,6 +133,11 @@ tm__read_tile_map_metadata(TileMapParseState parse_state, Memory *memory,
 		parse_state.file_index += 1;
 
 		if (c == '\n' || c == 0) {
+			if (tile_map_index >= 0) {
+				parse_state = tm__handle_tile_map_metadata(
+					parse_state, memory, state,
+					tile_map_index);
+			}
 			break;
 		} else if (c == '-') {
 			if (tile_map_index >= 0) {
@@ -139,6 +145,7 @@ tm__read_tile_map_metadata(TileMapParseState parse_state, Memory *memory,
 					parse_state, memory, state,
 					tile_map_index);
 			}
+			tile_map_index = -1;
 			state += 1;
 		} else if (c >= 48 && c <= 57) {
 			if (tile_map_index < 0)

@@ -635,25 +635,25 @@ static void transition_screens(i32 *image_buffer, PlayerState *player_state,
 	case UPDIR:
 		old_map_y_offset =
 			SCREEN_HEIGHT_PIXELS - world_state->transition_counter;
-		new_map_y_offset = old_map_y_offset - SCREEN_HEIGHT_PIXELS;
+		new_map_y_offset = -world_state->transition_counter;
 		player_state->pixel_y += transition_speed_y;
 		break;
 	case DOWNDIR:
 		old_map_y_offset =
 			world_state->transition_counter - SCREEN_HEIGHT_PIXELS;
-		new_map_y_offset = SCREEN_HEIGHT_PIXELS + old_map_y_offset;
+		new_map_y_offset = world_state->transition_counter;
 		player_state->pixel_y -= transition_speed_y;
 		break;
 	case RIGHTDIR:
 		old_map_x_offset =
 			world_state->transition_counter - SCREEN_WIDTH_PIXELS;
-		new_map_x_offset = SCREEN_WIDTH_PIXELS + old_map_x_offset;
+		new_map_x_offset = world_state->transition_counter;
 		player_state->pixel_x -= transition_speed_x;
 		break;
 	case LEFTDIR:
 		old_map_x_offset =
 			SCREEN_WIDTH_PIXELS - world_state->transition_counter;
-		new_map_x_offset = old_map_x_offset - SCREEN_WIDTH_PIXELS;
+		new_map_x_offset = -world_state->transition_counter;
 		player_state->pixel_x += transition_speed_x;
 		break;
 	default:
