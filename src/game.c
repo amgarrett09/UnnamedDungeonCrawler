@@ -59,7 +59,7 @@ void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt)
 	world_state->tile_set = load_bitmap("resources/tile_set.bmp", memory);
 
 	size_t tile_map_load_result =
-		tm_load_tile_map("resources/maps/tilemap.tm", memory);
+		tm_load_tile_map("resources/maps/test_tilemap.tm", memory);
 
 	if (tile_map_load_result) {
 		world_state->current_tile_map = &memory->tile_maps[0];
