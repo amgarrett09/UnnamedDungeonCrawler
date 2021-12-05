@@ -210,7 +210,7 @@ static void tm__set_tile_map_value(i32 x, i32 y, i32 layer, i32 tile_number,
 		break;
 	}
 	case 2:
-		tile_map->collision_map[y][x] = !!tile_number;
+		tile_map->tile_props[y][x] = tile_number;
 		break;
 	default:
 		break;

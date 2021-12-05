@@ -106,18 +106,29 @@ typedef struct {
 typedef struct TileMap {
 	/* Format for tile map: (background_tile << 16) | foreground_tile */
 	i32 tile_map[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
-	i32 collision_map[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
+	/*
+	 * Format for tile_props:
+	 * (warp_map << 24) | (warp_x << 16) | (warp_y << 8) | flags
+	 */
+	i32 tile_props[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
 	struct TileMap *top_connection;
 	struct TileMap *right_connection;
 	struct TileMap *bottom_connection;
 	struct TileMap *left_connection;
 } TileMap;
 
+typedef enum {
+	TRANS_STATE_NORMAL = 0,
+	TRANS_STATE_WAITING,
+	TRANS_STATE_SCROLLING,
+	TRANS_STATE_WARPING
+} TransitionState;
+
 typedef struct {
 	TileMap *current_tile_map;
 	TileMap *next_tile_map;
 	void *tile_set;
-	bool screen_transitioning;
+	TransitionState trans_state;
 	Direction transition_direction;
 	i32 transition_counter;
 } WorldState;

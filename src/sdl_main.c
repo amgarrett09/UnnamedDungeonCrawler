@@ -107,7 +107,6 @@ int main()
 	game_memory.temp_next_load_offset = 0;
 	game_memory.is_initialized        = false;
 
-
 	Sound sound             = {};
 	sound.sound_buffer      = malloc(target_sound_buffer_size);
 	sound.sound_buffer_size = target_sound_buffer_size;

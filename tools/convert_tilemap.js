@@ -16,6 +16,7 @@ const screen_height = 20;
 const screen_width = 40;
 
 const connections = {
+	1: ["_-_-_-_"],
 	4: [
 		"_-1-2-_",
 		"_-_-3-0",
@@ -81,11 +82,51 @@ for (let i = 0; i < objects.length; i++) {
 			const collision_prop = obj.properties.find(x => {
 				return x.name === 'collision';
 			});
+			const warp_x = obj.properties.find(x => {
+				return x.name === 'warp_x';
+			});
+			const warp_y = obj.properties.find(x => {
+				return x.name === 'warp_y';
+			});
 
 			if (obj_data[index] === 0
 			    && collision_prop
 			    && collision_prop.value) {
 				obj_data[index] = 1;
+			}
+			if (obj_data[index] === 0) {
+				let props = 0;
+				if (collision_prop && collision_prop.value)
+					props = props | 1;
+				if (warp_x && warp_y) {
+					const abs_x = Math.floor(
+						warp_x.value / 32
+					);
+					const abs_y = Math.floor(
+						warp_y.value / 32
+					);
+					const rel_x = abs_x
+						% screen_width;
+					const rel_y = abs_y
+						% screen_height;
+					const map_row = Math.floor(
+						abs_y / screen_height
+					);
+					const map_col = Math.floor(
+						abs_x / screen_width
+					);
+
+					const map_number =
+						map_row * basis + map_col;
+
+
+					props = props | (map_number << 24);
+					props = props | (rel_x << 16);
+					props = props | (rel_y << 8);
+					props = props | 2;
+				}
+
+				obj_data[index] = props;
 			}
 		}
 	}	
