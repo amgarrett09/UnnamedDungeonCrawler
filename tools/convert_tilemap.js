@@ -89,11 +89,6 @@ for (let i = 0; i < objects.length; i++) {
 				return x.name === 'warp_y';
 			});
 
-			if (obj_data[index] === 0
-			    && collision_prop
-			    && collision_prop.value) {
-				obj_data[index] = 1;
-			}
 			if (obj_data[index] === 0) {
 				let props = 0;
 				if (collision_prop && collision_prop.value)
