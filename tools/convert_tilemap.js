@@ -47,7 +47,9 @@ function get_starting_rows_columns(map, screen_width, screen_height, basis) {
 
 const layers = data.layers;
 
-const objects = layers[2].objects;
+const layer_1 = layers[0] ? layers[0].data : [];
+const layer_2 = layers[1] ? layers[1].data : [];
+const objects = layers[2] ? layers[2].objects : [];
 
 const map_height = layers[0].height;
 const map_width = layers[0].width;
@@ -97,8 +99,6 @@ for (let map_number = 0; map_number < num_tile_maps; map_number++) {
 	out_string.push(map_number.toString() 
 		+ "-" + connections[num_tile_maps][map_number] + "\n");
 
-	const layer_1 = layers[0].data;
-	const layer_2 = layers[1].data;
 	const { source_start_row, source_start_column } =
 		get_starting_rows_columns(map_number,
 			                  screen_width,
@@ -109,20 +109,22 @@ for (let map_number = 0; map_number < num_tile_maps; map_number++) {
 		for (let col = 0; col < screen_width; col++) {
 			const source_row = source_start_row + row;
 			const source_col = source_start_column + col;
-
+			const layer_1_val =  
+				layer_1[source_row * map_width + source_col];
+			const layer_2_val = 
+				layer_2[source_row * map_width + source_col];
+			const obj_val = 
+				obj_data[source_row * map_width + source_col];
 			out_string.push(
-				layer_1[source_row * map_width + source_col]
-					.toString()
+				layer_1_val ? layer_1_val.toString() : "0"
 			);
 			out_string.push(",");
 			out_string.push(
-				layer_2[source_row * map_width + source_col]
-					.toString()
+				layer_2_val ? layer_2_val.toString() : "0"
 			);
 			out_string.push(",");
 			out_string.push(
-				obj_data[source_row * map_width + source_col]
-					.toString()
+				obj_val ? obj_val.toString() : "0"
 			);
 			out_string.push(",\n");
 		}
