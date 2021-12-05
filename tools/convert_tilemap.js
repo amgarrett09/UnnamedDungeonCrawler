@@ -22,20 +22,26 @@ const connections = {
 		"0-3-_-_",
 		"1-_-_-2",
 	],
+	9: [
+		"_-1-3-_",
+		"_-2-4-0",
+		"_-_-5-1",
+		"0-4-6-_",
+		"1-5-7-3",
+		"2-_-8-4",
+		"3-7-_-_",
+		"4-8-_-6",
+		"5-_-_-7",
+	],
 };
 
-const start_rows = {
-	4: function(map_number, screen_width, screen_height) {
-		const source_start_column = map_number % 2 === 0 
-			? 0 
-			: screen_width;
-		const source_start_row = map_number > 1
-			? screen_height
-			: 0;
-		return {
-			source_start_column,
-			source_start_row,
-		};
+function get_starting_rows_columns(map, screen_width, screen_height, basis) {
+	const source_start_column = (map % basis) * screen_width;
+	const source_start_row = Math.floor(map / basis) * screen_height;
+
+	return {
+		source_start_column,
+		source_start_row,
 	}
 }
 
@@ -50,7 +56,9 @@ let num_tile_maps =
 	Math.floor(map_height / screen_height) 
 		* Math.floor(map_width / screen_width);
 
-if (!connections[num_tile_maps]) {
+let basis = Math.floor(Math.sqrt(num_tile_maps));
+
+if (!connections[basis*basis]) {
 	throw new Error("Unsupported tile map size");
 }
 
@@ -91,10 +99,11 @@ for (let map_number = 0; map_number < num_tile_maps; map_number++) {
 
 	const layer_1 = layers[0].data;
 	const layer_2 = layers[1].data;
-	const { source_start_row, source_start_column } 
-		= start_rows[num_tile_maps](
-			map_number, screen_width, screen_height
-		);
+	const { source_start_row, source_start_column } =
+		get_starting_rows_columns(map_number,
+			                  screen_width,
+			                  screen_height,
+					  basis);
 
 	for (let row = 0; row < screen_height; row++) {
 		for (let col = 0; col < screen_width; col++) {
