@@ -15,26 +15,63 @@ const fs = require('fs');
 const screen_height = 20;
 const screen_width = 40;
 
-const connections = {
-	1: ["_-_-_-_"],
-	4: [
-		"_-1-2-_",
-		"_-_-3-0",
-		"0-3-_-_",
-		"1-_-_-2",
-	],
-	9: [
-		"_-1-3-_",
-		"_-2-4-0",
-		"_-_-5-1",
-		"0-4-6-_",
-		"1-5-7-3",
-		"2-_-8-4",
-		"3-7-_-_",
-		"4-8-_-6",
-		"5-_-_-7",
-	],
-};
+/* 
+ * Tile maps in the game engine get split into 40 tile by 20 tile chunks
+ * (the size of one screen), along with references to other chunks connected
+ * to it. We need to encode the connections in the map file, with the format:
+ * top-right-bottom-left.
+ *
+ * basis: the square root of the number of screens in the map
+ */
+function build_connections(basis) {
+	if (basis === 1)
+		return ["_-_-_-_"];
+
+	let top = 0;
+	let right = 1;
+	let bottom = basis;
+	let left = -1;
+
+	let out = [];
+	for (let i = 0; i < basis*basis; i++) {
+		let connections = "";
+
+		if (i < basis) {
+			connections += "_-";
+		} else {
+			connections += `${top}-`
+			top += 1;
+		}
+
+		if ((i + 1) % basis === 0) {
+			connections += "_-";
+			right += 1;
+		} else {
+			connections += `${right}-`;
+			right += 1;
+		}
+
+		if (i >= (basis*basis - basis)) {
+			connections += "_-";
+		} else {
+			connections += `${bottom}-`;
+			bottom += 1;
+		}
+
+		if (i % basis === 0) {
+			connections += "_";
+			left += 1;
+		} else {
+			connections += `${left}`;
+			left += 1;
+		}
+
+		out.push(connections);
+	}
+
+	return out;
+}
+
 
 function get_starting_rows_columns(map, screen_width, screen_height, basis) {
 	const source_start_column = (map % basis) * screen_width;
@@ -61,9 +98,12 @@ let num_tile_maps =
 
 let basis = Math.floor(Math.sqrt(num_tile_maps));
 
-if (!connections[basis*basis]) {
+
+if (basis*basis !== num_tile_maps) {
 	throw new Error("Unsupported tile map size");
 }
+
+const connections = build_connections(basis);
 
 let obj_data = new Array(map_height*map_width).fill(0);
 
@@ -133,7 +173,7 @@ out_string.push(num_tile_maps.toString() + "\n");
 
 for (let map_number = 0; map_number < num_tile_maps; map_number++) {
 	out_string.push(map_number.toString() 
-		+ "-" + connections[num_tile_maps][map_number] + "\n");
+		+ "-" + connections[map_number] + "\n");
 
 	const { source_start_row, source_start_column } =
 		get_starting_rows_columns(map_number,
