@@ -16,12 +16,14 @@ const screen_height = 20;
 const screen_width = 40;
 
 /* 
- * Tile maps in the game engine get split into 40 tile by 20 tile chunks
- * (the size of one screen), along with references to other chunks connected
- * to it. We need to encode the connections in the map file, with the format:
- * top-right-bottom-left.
+ * Tile maps in the game engine get split into 40 tile by 20 tile sections
+ * (the size of one screen), along with references to other sections connected
+ * to it. We need to encode the connections of each section in the map file, 
+ * with the format: "top-right-bottom-left".
  *
- * basis: the square root of the number of screens in the map
+ * This funciton generates those encodings for each map section.
+ *
+ * basis: the square root of the number of screens/sections in the map
  */
 function build_connections(basis) {
 	if (basis === 1)
@@ -73,6 +75,15 @@ function build_connections(basis) {
 }
 
 
+/* 
+ * Get the starting rows and columns for a particular sub-map / section of
+ * the full tile map
+ *
+ * map: map sub-section number
+ * screen_width: width of one screen in tiles
+ * screen_height: height of one screen in tiles
+ * basis: sqrt of the number of map sub-sections
+ */
 function get_starting_rows_columns(map, screen_width, screen_height, basis) {
 	const source_start_column = (map % basis) * screen_width;
 	const source_start_row = Math.floor(map / basis) * screen_height;
@@ -107,6 +118,7 @@ const connections = build_connections(basis);
 
 let obj_data = new Array(map_height*map_width).fill(0);
 
+/* Building an array of tile properties from tilemap object data */
 for (let i = 0; i < objects.length; i++) {		
 	const obj = objects[i];
 
@@ -171,6 +183,7 @@ let out_string = [];
 
 out_string.push(num_tile_maps.toString() + "\n");
 
+/* Encoding tilemap data according to format recognized by game */
 for (let map_number = 0; map_number < num_tile_maps; map_number++) {
 	out_string.push(map_number.toString() 
 		+ "-" + connections[map_number] + "\n");
