@@ -720,7 +720,7 @@ static void warp_to_screen(i32 *image_buffer, PlayerState *player_state,
 	player_state->pixel_y =
 		convert_tile_to_pixel(player_state->tile_y, Y_DIMENSION);
 	player_state->pixel_x =
-		convert_tile_to_pixel(player_state->tile_x, Y_DIMENSION);
+		convert_tile_to_pixel(player_state->tile_x, X_DIMENSION);
 
 	render_tile_map(image_buffer, world_state->next_tile_map,
 			world_state->tile_set, 0, 0);
