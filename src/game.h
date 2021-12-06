@@ -169,4 +169,5 @@ void game_update_and_render(Memory *memory, Input *input,
  */
 i32 debug_platform_stream_audio(const char file_path[], FileStream *stream,
 				void *sound_buffer, i32 sound_buffer_size);
-size_t debug_platform_load_asset(const char file_path[], void *memory_location);
+size_t debug_platform_load_asset(const char file_path[], void *memory_location,
+		                 size_t max_size);

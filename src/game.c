@@ -16,13 +16,12 @@
  */
 
 /*
- * Dependendencies: <string.h>, game.h, tile_map.c
+ * Dependendencies: <string.h>, game.h, , util.c, tile_map.c
  */
 
 static const i32 SCREEN_HEIGHT_PIXELS = SCREEN_HEIGHT_TILES * TILE_HEIGHT;
 static const i32 SCREEN_WIDTH_PIXELS  = SCREEN_WIDTH_TILES * TILE_WIDTH;
 
-static i32 bit_scan_forward_u(u32 number);
 static void check_and_prep_screen_transition(WorldState *world_state,
 					     PlayerState *player_state,
 					     TileMap *tile_maps);
@@ -31,8 +30,6 @@ static void display_bitmap_tile(i32 *image_buffer, Bitmap *bmp, i32 tile_number,
 				i32 target_x, i32 target_y, i32 tile_width,
 				i32 tile_height, bool mirrored);
 
-static size_t get_next_aligned_offset(size_t start_offset, size_t min_to_add,
-				      size_t alignment);
 static void *load_bitmap(const char file_path[], Memory *memory);
 static void move_player(PlayerState *player_state, ScreenState *screen_state);
 static void handle_player_collision(WorldState *world_state,
@@ -121,30 +118,6 @@ void game_update_and_render(Memory *memory, Input *input,
 	render_player(image_buffer, player_state);
 
 	render_status_bar(image_buffer);
-}
-
-/*
- * Finds first set bit in an unsigned integer, starting from lowest bit.
- * Returns the index of the set bit.
- */
-static i32 bit_scan_forward_u(u32 number)
-{
-	/* TODO: Use intrinsic for this */
-	bool found = false;
-	i32 index  = 0;
-
-	while (!found) {
-		if (index > 31) {
-			index = -1;
-			break;
-		} else if (number & (1 << index)) {
-			found = true;
-		} else {
-			index++;
-		}
-	}
-
-	return index;
 }
 
 static void check_and_prep_screen_transition(WorldState *world_state,
@@ -296,19 +269,6 @@ static void display_bitmap_tile(i32 *restrict image_buffer,
 	}
 }
 
-static size_t get_next_aligned_offset(size_t start_offset, size_t min_to_add,
-				      size_t alignment)
-{
-	size_t min_new_offset = start_offset + min_to_add;
-	size_t remainder      = min_new_offset % alignment;
-
-	if (remainder) {
-		return min_new_offset + (alignment - remainder);
-	} else {
-		return min_new_offset;
-	}
-}
-
 static void handle_player_collision(WorldState *world_state,
 				    PlayerState *player_state, Input *input,
 				    ScreenState *screen_state)
@@ -388,14 +348,16 @@ static void hot_tile_push(ScreenState *screen_state, i32 tile_x, i32 tile_y)
 	screen_state->hot_tiles[screen_state->hot_tiles_length++] = value;
 }
 
-// TODO: maybe pass an expected size parameter and fail if file is larger
 static void *load_bitmap(const char file_path[], Memory *memory)
 {
+	size_t allowed_size = util_get_free_storage_bytes(memory);
+
 	char *load_location =
 		(char *)memory->temp_storage + memory->temp_next_load_offset;
 
 	size_t result =
-		debug_platform_load_asset(file_path, (void *)load_location);
+		debug_platform_load_asset(file_path, (void *)load_location,
+				          allowed_size);
 
 	if (!result) {
 		return NULL;
@@ -424,10 +386,10 @@ static void *load_bitmap(const char file_path[], Memory *memory)
 	 * For swizzling:
 	 * How many bits we need to shift to get values to start at bit 0
 	 */
-	i32 red_shift   = bit_scan_forward_u(red_mask);
-	i32 green_shift = bit_scan_forward_u(green_mask);
-	i32 blue_shift  = bit_scan_forward_u(blue_mask);
-	i32 alpha_shift = bit_scan_forward_u(alpha_mask);
+	i32 red_shift   = util_bit_scan_forward_u(red_mask);
+	i32 green_shift = util_bit_scan_forward_u(green_mask);
+	i32 blue_shift  = util_bit_scan_forward_u(blue_mask);
+	i32 alpha_shift = util_bit_scan_forward_u(alpha_mask);
 
 	red_shift   = red_shift < 0 ? 0 : red_shift;
 	green_shift = green_shift < 0 ? 0 : green_shift;
@@ -450,7 +412,7 @@ static void *load_bitmap(const char file_path[], Memory *memory)
 	}
 
 	size_t bitmap_size = image_width * image_height * 4 + sizeof(Bitmap);
-	memory->temp_next_load_offset = get_next_aligned_offset(
+	memory->temp_next_load_offset = util_get_next_aligned_offset(
 		memory->temp_next_load_offset, bitmap_size, 32);
 
 	return (void *)load_location;

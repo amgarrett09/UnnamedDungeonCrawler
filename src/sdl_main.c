@@ -24,6 +24,7 @@
 #include <SDL2/SDL.h>
 
 #include "game.h"
+#include "util.c"
 #include "tile_map.c"
 #include "game.c"
 
@@ -263,7 +264,8 @@ i32 debug_platform_stream_audio(const char file_path[], FileStream *stream,
 	return -1;
 }
 
-size_t debug_platform_load_asset(const char file_path[], void *memory_location)
+size_t debug_platform_load_asset(const char file_path[], void *memory_location,
+		                 size_t max_size)
 {
 	FILE *file = fopen(file_path, "rb");
 
@@ -274,6 +276,11 @@ size_t debug_platform_load_asset(const char file_path[], void *memory_location)
 
 	fseek(file, 0, SEEK_END);
 	size_t file_size = ftell(file);
+
+	if (file_size > max_size) {
+		return 0;
+	}
+
 	rewind(file);
 
 	size_t result = fread(memory_location, 1, file_size, file);

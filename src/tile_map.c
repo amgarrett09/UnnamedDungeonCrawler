@@ -40,11 +40,14 @@ static void tm__set_tile_map_value(i32 x, i32 y, i32 layer, i32 tile_number,
 
 size_t tm_load_tile_map(const char file_path[], Memory *memory)
 {
+	size_t allowed_size = util_get_free_storage_bytes(memory);
+
 	char *temp_location =
 		(char *)memory->temp_storage + memory->temp_next_load_offset;
 
 	size_t result =
-		debug_platform_load_asset(file_path, (void *)temp_location);
+		debug_platform_load_asset(file_path, (void *)temp_location,
+				          allowed_size);
 
 	if (!result)
 		return 0;
