@@ -32,6 +32,7 @@
 #define SAMPLES_PER_SECOND 44100
 #define BYTES_PER_SAMPLE 4
 #define TARGET_FRAME_RATE 60
+#define MAX_PLAYER_SPRITE_SIZE 100 * 1024
 
 typedef int8_t i8;
 typedef int16_t i16;
@@ -92,7 +93,6 @@ typedef struct {
 } Input;
 
 typedef struct {
-	void *sprite_location;
 	i32 sprite_number;
 	i32 pixel_x;
 	i32 pixel_y;
@@ -101,6 +101,7 @@ typedef struct {
 	i32 move_counter;
 	Direction move_direction;
 	i32 speed;
+	char player_sprites[MAX_PLAYER_SPRITE_SIZE];
 } PlayerState;
 
 typedef struct TileMap {
@@ -170,4 +171,4 @@ void game_update_and_render(Memory *memory, Input *input,
 i32 debug_platform_stream_audio(const char file_path[], FileStream *stream,
 				void *sound_buffer, i32 sound_buffer_size);
 size_t debug_platform_load_asset(const char file_path[], void *memory_location,
-		                 size_t max_size);
+				 size_t max_size);

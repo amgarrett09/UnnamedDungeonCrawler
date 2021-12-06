@@ -16,7 +16,7 @@
  */
 
 /*
- * Dependendencies: <string.h>, game.h, , util.c, tile_map.c
+ * Dependendencies: <string.h>, game.h, , util.c, memory.c tile_map.c
  */
 
 static const i32 SCREEN_HEIGHT_PIXELS = SCREEN_HEIGHT_TILES * TILE_HEIGHT;
@@ -30,7 +30,8 @@ static void display_bitmap_tile(i32 *image_buffer, Bitmap *bmp, i32 tile_number,
 				i32 target_x, i32 target_y, i32 tile_width,
 				i32 tile_height, bool mirrored);
 
-static void *load_bitmap(const char file_path[], Memory *memory);
+static size_t load_bitmap(const char file_path[], void *load_location,
+			  size_t max_size);
 static void move_player(PlayerState *player_state, ScreenState *screen_state);
 static void handle_player_collision(WorldState *world_state,
 				    PlayerState *player_state, Input *input,
@@ -54,9 +55,20 @@ void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt)
 	PlayerState *player_state = &memory->player_state;
 	WorldState *world_state   = &memory->world_state;
 
-	player_state->sprite_location =
-		load_bitmap("resources/player_sprites.bmp", memory);
-	world_state->tile_set = load_bitmap("resources/tile_set.bmp", memory);
+	load_bitmap("resources/player_sprites.bmp",
+		    (void *)player_state->player_sprites,
+		    MAX_PLAYER_SPRITE_SIZE);
+
+	void *tile_set_load_location = mem_get_storage_load_location(memory);
+	size_t max_tile_set_size     = mem_get_free_storage_bytes(memory);
+
+	size_t bitmap_result =
+		load_bitmap("resources/tile_set.bmp",
+			    (void *)tile_set_load_location, max_tile_set_size);
+
+	world_state->tile_set = tile_set_load_location;
+
+	mem_update_next_load_offset(memory, bitmap_result, 32);
 
 	size_t tile_map_load_result =
 		tm_load_tile_map("resources/maps/test_tilemap.tm", memory);
@@ -348,19 +360,14 @@ static void hot_tile_push(ScreenState *screen_state, i32 tile_x, i32 tile_y)
 	screen_state->hot_tiles[screen_state->hot_tiles_length++] = value;
 }
 
-static void *load_bitmap(const char file_path[], Memory *memory)
+static size_t load_bitmap(const char file_path[], void *load_location,
+			  size_t max_size)
 {
-	size_t allowed_size = util_get_free_storage_bytes(memory);
-
-	char *load_location =
-		(char *)memory->temp_storage + memory->temp_next_load_offset;
-
-	size_t result =
-		debug_platform_load_asset(file_path, (void *)load_location,
-				          allowed_size);
+	size_t result = debug_platform_load_asset(
+		file_path, (void *)load_location, max_size);
 
 	if (!result) {
-		return NULL;
+		return 0;
 	}
 
 	BMPHeader *header = (BMPHeader *)load_location;
@@ -412,10 +419,8 @@ static void *load_bitmap(const char file_path[], Memory *memory)
 	}
 
 	size_t bitmap_size = image_width * image_height * 4 + sizeof(Bitmap);
-	memory->temp_next_load_offset = util_get_next_aligned_offset(
-		memory->temp_next_load_offset, bitmap_size, 32);
 
-	return (void *)load_location;
+	return bitmap_size;
 }
 
 static void move_player(PlayerState *player_state, ScreenState *screen_state)
@@ -494,21 +499,14 @@ static void render_hot_tiles(ScreenState *screen_state, WorldState *world_state)
 static void render_player(i32 *image_buffer, PlayerState *player_state)
 {
 	i32 player_min_x = player_state->pixel_x - 16;
-	i32 player_max_x = player_state->pixel_x + 17;
 	i32 player_min_y = player_state->pixel_y - 16;
-	i32 player_max_y = player_state->pixel_y + 17;
 
 	i32 sprite_number = player_state->sprite_number;
 	bool mirrored     = player_state->move_direction == LEFTDIR;
 
-	if (player_state->sprite_location) {
-		display_bitmap_tile(image_buffer, player_state->sprite_location,
-				    sprite_number, player_min_x, player_min_y,
-				    TILE_WIDTH, TILE_HEIGHT, mirrored);
-	} else {
-		render_rectangle(image_buffer, player_min_x, player_max_x,
-				 player_min_y, player_max_y, 0.0, 0.8, 0.25);
-	}
+	display_bitmap_tile(image_buffer, (void *)player_state->player_sprites,
+			    sprite_number, player_min_x, player_min_y,
+			    TILE_WIDTH, TILE_HEIGHT, mirrored);
 }
 
 static void render_rectangle(i32 *image_buffer, i32 min_x, i32 max_x, i32 min_y,

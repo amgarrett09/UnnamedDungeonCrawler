@@ -25,6 +25,7 @@
 
 #include "game.h"
 #include "util.c"
+#include "memory.c"
 #include "tile_map.c"
 #include "game.c"
 
@@ -265,7 +266,7 @@ i32 debug_platform_stream_audio(const char file_path[], FileStream *stream,
 }
 
 size_t debug_platform_load_asset(const char file_path[], void *memory_location,
-		                 size_t max_size)
+				 size_t max_size)
 {
 	FILE *file = fopen(file_path, "rb");
 

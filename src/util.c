@@ -15,14 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/*
- * Dependencies: game.h
- */
-
 i32 util_bit_scan_forward_u(u32 number);
-size_t util_get_free_storage_bytes(Memory *memory);
-size_t get_next_aligned_offset(size_t start_offset, size_t min_to_add,
-				      size_t alignment);
 
 /*
  * Finds first set bit in an unsigned integer, starting from lowest bit.
@@ -47,22 +40,3 @@ i32 util_bit_scan_forward_u(u32 number)
 
 	return index;
 }
-
-size_t util_get_free_storage_bytes(Memory *memory)
-{
-	return memory->temp_storage_size - memory->temp_next_load_offset;
-}
-
-size_t util_get_next_aligned_offset(size_t start_offset, size_t min_to_add,
-				      size_t alignment)
-{
-	size_t min_new_offset = start_offset + min_to_add;
-	size_t remainder      = min_new_offset % alignment;
-
-	if (remainder) {
-		return min_new_offset + (alignment - remainder);
-	} else {
-		return min_new_offset;
-	}
-}
-
