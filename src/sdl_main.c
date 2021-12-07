@@ -222,6 +222,10 @@ cleanup:
 		free(sound.sound_buffer);
 	}
 
+	if (storage.temp_storage) {
+		free(storage.temp_storage);
+	}
+
 	if (stream.fd) {
 		fclose(stream.fd);
 	}
