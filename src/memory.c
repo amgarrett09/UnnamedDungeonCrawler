@@ -22,24 +22,30 @@
 static size_t mem__get_next_aligned_offset(size_t start_offset,
 					   size_t min_to_add, size_t alignment);
 
-size_t mem_get_free_storage_bytes(Memory *memory)
-{
-	return memory->temp_storage_size - memory->temp_next_load_offset;
-}
-
-void *mem_get_storage_load_location(Memory *memory)
+void *mem_load_file_to_temp_storage(Memory *memory, const char file_path[],
+				    size_t (*func)(const char[], void *,
+						   size_t),
+				    bool discard)
 {
 	char *load_location =
 		(char *)memory->temp_storage + memory->temp_next_load_offset;
+	ssize_t max_size = (ssize_t)memory->temp_storage_size -
+		(ssize_t)memory->temp_next_load_offset;
+
+	if (max_size <= 0)
+		return NULL;
+
+	size_t result = func(file_path, (void *)load_location, max_size);
+
+	if (!result)
+		return NULL;
+
+	if (!discard) {
+		memory->temp_next_load_offset = mem__get_next_aligned_offset(
+			memory->temp_next_load_offset, result, 32);
+	}
 
 	return (void *)load_location;
-}
-
-void mem_update_next_load_offset(Memory *memory, size_t min_to_add,
-				 size_t alignment)
-{
-	memory->temp_next_load_offset = mem__get_next_aligned_offset(
-		memory->temp_next_load_offset, min_to_add, alignment);
 }
 
 static size_t mem__get_next_aligned_offset(size_t start_offset,

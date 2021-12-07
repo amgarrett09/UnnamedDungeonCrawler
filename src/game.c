@@ -59,21 +59,13 @@ void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt)
 		    (void *)player_state->player_sprites,
 		    MAX_PLAYER_SPRITE_SIZE);
 
-	void *tile_set_load_location = mem_get_storage_load_location(memory);
-	size_t max_tile_set_size     = mem_get_free_storage_bytes(memory);
+	world_state->tile_set = mem_load_file_to_temp_storage(
+		memory, "resources/tile_set.bmp", &load_bitmap, false);
 
-	size_t bitmap_result =
-		load_bitmap("resources/tile_set.bmp",
-			    (void *)tile_set_load_location, max_tile_set_size);
-
-	world_state->tile_set = tile_set_load_location;
-
-	mem_update_next_load_offset(memory, bitmap_result, 32);
-
-	size_t tile_map_load_result =
+	bool tile_map_loaded =
 		tm_load_tile_map("resources/maps/test_tilemap.tm", memory);
 
-	if (tile_map_load_result) {
+	if (tile_map_loaded) {
 		world_state->current_tile_map = &memory->tile_maps[0];
 	}
 

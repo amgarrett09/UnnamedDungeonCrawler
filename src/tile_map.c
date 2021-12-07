@@ -38,18 +38,13 @@ static TileMapParseState tm__read_tile_map_tiles(TileMapParseState parse_state,
 static void tm__set_tile_map_value(i32 x, i32 y, i32 layer, i32 tile_number,
 				   TileMap *tile_map);
 
-size_t tm_load_tile_map(const char file_path[], Memory *memory)
+bool tm_load_tile_map(const char file_path[], Memory *memory)
 {
-	size_t allowed_size = mem_get_free_storage_bytes(memory);
+	void *temp_location = mem_load_file_to_temp_storage(
+		memory, file_path, &debug_platform_load_asset, true);
 
-	char *temp_location =
-		(char *)memory->temp_storage + memory->temp_next_load_offset;
-
-	size_t result = debug_platform_load_asset(
-		file_path, (void *)temp_location, allowed_size);
-
-	if (!result)
-		return 0;
+	if (!temp_location)
+		return false;
 
 	TileMapParseState parse_state = {
 		.tile_map       = &memory->tile_maps[0],
@@ -66,7 +61,7 @@ size_t tm_load_tile_map(const char file_path[], Memory *memory)
 			tm__read_tile_map_tiles(parse_state, temp_location);
 	}
 
-	return result;
+	return true;
 }
 
 static TileMapParseState tm__get_tile_map_count(TileMapParseState parse_state,

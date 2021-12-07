@@ -15,8 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-i32 util_bit_scan_forward_u(u32 number);
-
 /*
  * Finds first set bit in an unsigned integer, starting from lowest bit.
  * Returns the index of the set bit.
