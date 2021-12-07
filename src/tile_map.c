@@ -89,11 +89,14 @@ static TileMapParseState tm__get_tile_map_count(TileMapParseState parse_state,
 	return parse_state;
 }
 
-/* TODO: Prevent out-of-bounds indexes */
 static TileMapParseState
 tm__handle_tile_map_metadata(TileMapParseState parse_state, Memory *memory,
 			     i32 state, i32 tile_map_index)
 {
+	if (tile_map_index >= MAX_TILE_MAPS) {
+		return parse_state;
+	}
+
 	switch (state) {
 	case 0:
 		parse_state.tile_map = &memory->tile_maps[tile_map_index];
