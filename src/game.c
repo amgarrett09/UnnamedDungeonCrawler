@@ -24,7 +24,7 @@ static const i32 SCREEN_WIDTH_PIXELS  = SCREEN_WIDTH_TILES * TILE_WIDTH;
 
 static void check_and_prep_screen_transition(WorldState *world_state,
 					     PlayerState *player_state,
-					     TileMap *tile_maps);
+					     MapSegment *map_segments);
 static i32 convert_tile_to_pixel(i32 tile_value, CoordDimension dimension);
 static void display_bitmap_tile(i32 *image_buffer, Bitmap *bmp, i32 tile_number,
 				i32 target_x, i32 target_y, i32 tile_width,
@@ -43,7 +43,7 @@ static void render_player(i32 *image_buffer, PlayerState *player_state);
 static void render_rectangle(i32 *image_buffer, i32 min_x, i32 max_x, i32 min_y,
 			     i32 max_y, float red, float green, float blue);
 static void render_status_bar(i32 *image_buffer);
-static void render_tile_map(i32 *image_buffer, TileMap *tile_map,
+static void render_map_segment(i32 *image_buffer, MapSegment *map_segment,
 			    void *tile_set, i32 x_offset, i32 y_offset);
 static void scroll_screens(i32 *image_buffer, PlayerState *player_state,
 			   WorldState *world_state);
@@ -66,7 +66,7 @@ void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt)
 		tm_load_tile_map("resources/maps/test_tilemap.tm", memory);
 
 	if (tile_map_loaded) {
-		world_state->current_tile_map = &memory->tile_maps[0];
+		world_state->current_map_segment = &memory->map_segments[0];
 	}
 
 	player_state->tile_x = 15;
@@ -80,8 +80,8 @@ void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt)
 	player_state->speed          = ((TILE_WIDTH / 8) * dt) / 16;
 	player_state->sprite_number  = 2;
 
-	render_tile_map(screen_state->image_buffer,
-			world_state->current_tile_map, world_state->tile_set, 0,
+	render_map_segment(screen_state->image_buffer,
+			world_state->current_map_segment, world_state->tile_set, 0,
 			0);
 }
 
@@ -104,7 +104,7 @@ void game_update_and_render(Memory *memory, Input *input,
 
 	if (player_state->move_counter <= 0) {
 		check_and_prep_screen_transition(world_state, player_state,
-						 memory->tile_maps);
+						 memory->map_segments);
 
 		if (world_state->trans_state != TRANS_STATE_NORMAL &&
 		    world_state->trans_state != TRANS_STATE_WAITING)
@@ -126,49 +126,49 @@ void game_update_and_render(Memory *memory, Input *input,
 
 static void check_and_prep_screen_transition(WorldState *world_state,
 					     PlayerState *player_state,
-					     TileMap *tile_maps)
+					     MapSegment *map_segments)
 {
-	TileMap *old_tile_map = world_state->current_tile_map;
+	MapSegment *old_map_segment = world_state->current_map_segment;
 	i32 tile_x            = player_state->tile_x;
 	i32 tile_y            = player_state->tile_y;
 
-	if (tile_y == -1 && old_tile_map->top_connection) {
+	if (tile_y == -1 && old_map_segment->top_connection) {
 		world_state->trans_state          = TRANS_STATE_SCROLLING;
 		world_state->transition_counter   = SCREEN_HEIGHT_PIXELS;
 		world_state->transition_direction = UPDIR;
-		world_state->next_tile_map = old_tile_map->top_connection;
+		world_state->next_map_segment = old_map_segment->top_connection;
 	} else if (tile_y == SCREEN_HEIGHT_TILES &&
-		   old_tile_map->bottom_connection) {
+		   old_map_segment->bottom_connection) {
 		world_state->trans_state          = TRANS_STATE_SCROLLING;
 		world_state->transition_counter   = SCREEN_HEIGHT_PIXELS;
 		world_state->transition_direction = DOWNDIR;
-		world_state->next_tile_map = old_tile_map->bottom_connection;
-	} else if (tile_x == -1 && old_tile_map->left_connection) {
+		world_state->next_map_segment = old_map_segment->bottom_connection;
+	} else if (tile_x == -1 && old_map_segment->left_connection) {
 		world_state->trans_state          = TRANS_STATE_SCROLLING;
 		world_state->transition_counter   = SCREEN_WIDTH_PIXELS;
 		world_state->transition_direction = LEFTDIR;
-		world_state->next_tile_map = old_tile_map->left_connection;
+		world_state->next_map_segment = old_map_segment->left_connection;
 	} else if (tile_x == SCREEN_WIDTH_TILES &&
-		   old_tile_map->right_connection) {
+		   old_map_segment->right_connection) {
 		world_state->trans_state          = TRANS_STATE_SCROLLING;
 		world_state->transition_counter   = SCREEN_WIDTH_PIXELS;
 		world_state->transition_direction = RIGHTDIR;
-		world_state->next_tile_map = old_tile_map->right_connection;
+		world_state->next_map_segment = old_map_segment->right_connection;
 	} else {
 		i32 tile_x      = player_state->tile_x;
 		i32 tile_y      = player_state->tile_y;
-		i32 *tile_props = (i32 *)old_tile_map->tile_props;
+		i32 *tile_props = (i32 *)old_map_segment->tile_props;
 		i32 current_tile_props =
 			tile_props[tile_y * SCREEN_WIDTH_TILES + tile_x];
 
 		bool is_warp_tile = !!(current_tile_props & 0x02);
 		i32 warp_map      = (current_tile_props & 0xFF000000) >> 24;
 
-		if (is_warp_tile && warp_map < MAX_TILE_MAPS &&
+		if (is_warp_tile && warp_map < MAX_MAP_SEGMENTS &&
 		    world_state->trans_state != TRANS_STATE_WAITING) {
 
 			world_state->trans_state   = TRANS_STATE_WARPING;
-			world_state->next_tile_map = &tile_maps[warp_map];
+			world_state->next_map_segment = &map_segments[warp_map];
 		}
 	}
 }
@@ -278,7 +278,7 @@ static void handle_player_collision(WorldState *world_state,
 				    ScreenState *screen_state)
 {
 	i32 *current_tile_props =
-		(i32 *)world_state->current_tile_map->tile_props;
+		(i32 *)world_state->current_map_segment->tile_props;
 	i32 keys = input->keys;
 
 	if (keys & KEYMASK_UP || keys & KEYMASK_DOWN) {
@@ -455,7 +455,7 @@ static void move_player(PlayerState *player_state, ScreenState *screen_state)
 
 static void render_hot_tiles(ScreenState *screen_state, WorldState *world_state)
 {
-	i32 *tile_map        = (i32 *)world_state->current_tile_map->tile_map;
+	i32 *tiles        = (i32 *)world_state->current_map_segment->tiles;
 	i32 *hot_tiles       = screen_state->hot_tiles;
 	i32 hot_tiles_length = screen_state->hot_tiles_length;
 	i32 *image_buffer    = screen_state->image_buffer;
@@ -468,7 +468,7 @@ static void render_hot_tiles(ScreenState *screen_state, WorldState *world_state)
 		i32 tile_x = (data & 0xFFFF0000) >> 16;
 		i32 tile_y = data & 0x0000FFFF;
 
-		i32 tile_data = tile_map[tile_y * SCREEN_WIDTH_TILES + tile_x];
+		i32 tile_data = tiles[tile_y * SCREEN_WIDTH_TILES + tile_x];
 		i32 target_y  = tile_y * TILE_HEIGHT;
 		i32 target_x  = tile_x * TILE_WIDTH;
 
@@ -527,13 +527,13 @@ static void render_status_bar(i32 *image_buffer)
 	render_rectangle(image_buffer, 0, 1280, 640, 720, 1.0f, 0.0f, 1.0f);
 }
 
-static void render_tile_map(i32 *image_buffer, TileMap *tile_map,
+static void render_map_segment(i32 *image_buffer, MapSegment *map_segment,
 			    void *tile_set, i32 x_offset, i32 y_offset)
 {
-	if (!tile_set | !tile_map | !image_buffer)
+	if (!tile_set | !map_segment | !image_buffer)
 		return;
 
-	i32 *tiles = (i32 *)tile_map->tile_map;
+	i32 *tiles = (i32 *)map_segment->tiles;
 	for (i32 row = 0; row < SCREEN_HEIGHT_TILES; row++) {
 		for (i32 column = 0; column < SCREEN_WIDTH_TILES; column++) {
 			i32 target_y = row * TILE_HEIGHT;
@@ -571,7 +571,7 @@ static void scroll_screens(i32 *image_buffer, PlayerState *player_state,
 	/* If we're done transitioning... */
 	if (world_state->transition_counter <= 0) {
 		world_state->trans_state      = TRANS_STATE_NORMAL;
-		world_state->current_tile_map = world_state->next_tile_map;
+		world_state->current_map_segment = world_state->next_map_segment;
 
 		/* Put player in correct spot on new map */
 		switch (transition_direction) {
@@ -645,11 +645,11 @@ static void scroll_screens(i32 *image_buffer, PlayerState *player_state,
 		break;
 	}
 
-	render_tile_map(image_buffer, world_state->next_tile_map,
+	render_map_segment(image_buffer, world_state->next_map_segment,
 			world_state->tile_set, new_map_x_offset,
 			new_map_y_offset);
 
-	render_tile_map(image_buffer, world_state->current_tile_map,
+	render_map_segment(image_buffer, world_state->current_map_segment,
 			world_state->tile_set, old_map_x_offset,
 			old_map_y_offset);
 
@@ -661,7 +661,7 @@ static void scroll_screens(i32 *image_buffer, PlayerState *player_state,
 static void warp_to_screen(i32 *image_buffer, PlayerState *player_state,
 			   WorldState *world_state)
 {
-	i32 *tile_props = (i32 *)world_state->current_tile_map->tile_props;
+	i32 *tile_props = (i32 *)world_state->current_map_segment->tile_props;
 	i32 tile_x      = player_state->tile_x;
 	i32 tile_y      = player_state->tile_y;
 
@@ -674,14 +674,14 @@ static void warp_to_screen(i32 *image_buffer, PlayerState *player_state,
 	player_state->pixel_x =
 		convert_tile_to_pixel(player_state->tile_x, X_DIMENSION);
 
-	render_tile_map(image_buffer, world_state->next_tile_map,
+	render_map_segment(image_buffer, world_state->next_map_segment,
 			world_state->tile_set, 0, 0);
 
 	render_player(image_buffer, player_state);
 
 	render_status_bar(image_buffer);
 
-	world_state->current_tile_map = world_state->next_tile_map;
-	world_state->next_tile_map    = NULL;
+	world_state->current_map_segment = world_state->next_map_segment;
+	world_state->next_map_segment    = NULL;
 	world_state->trans_state      = TRANS_STATE_WAITING;
 }

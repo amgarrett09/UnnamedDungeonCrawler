@@ -20,23 +20,23 @@
  */
 
 typedef struct TileMapParseState {
-	TileMap *tile_map;
+	MapSegment *map_segment;
 	i32 file_index;
-	i32 tile_map_count;
+	i32 map_segment_count;
 } TileMapParseState;
 
-static TileMapParseState tm__get_tile_map_count(TileMapParseState parse_state,
+static TileMapParseState tm__get_map_segment_count(TileMapParseState parse_state,
 						char *file_location);
 static TileMapParseState
-tm__handle_tile_map_metadata(TileMapParseState parse_state, Memory *memory,
-			     i32 state, i32 tile_map_index);
+tm__handle_map_segment_metadata(TileMapParseState parse_state, Memory *memory,
+			     i32 state, i32 map_segment_index);
 static TileMapParseState
-tm__read_tile_map_metadata(TileMapParseState parse_state, Memory *memory,
+tm__read_map_segment_metadata(TileMapParseState parse_state, Memory *memory,
 			   char *file_location);
-static TileMapParseState tm__read_tile_map_tiles(TileMapParseState parse_state,
+static TileMapParseState tm__read_map_segment_tiles(TileMapParseState parse_state,
 						 char *file_location);
-static void tm__set_tile_map_value(i32 x, i32 y, i32 layer, i32 tile_number,
-				   TileMap *tile_map);
+static void tm__set_map_segment_value(i32 x, i32 y, i32 layer, i32 tile_number,
+				   MapSegment *map_segment);
 
 bool tm_load_tile_map(const char file_path[], Memory *memory)
 {
@@ -47,24 +47,24 @@ bool tm_load_tile_map(const char file_path[], Memory *memory)
 		return false;
 
 	TileMapParseState parse_state = {
-		.tile_map       = &memory->tile_maps[0],
+		.map_segment       = &memory->map_segments[0],
 		.file_index     = 0,
-		.tile_map_count = 0,
+		.map_segment_count = 0,
 	};
 
-	parse_state = tm__get_tile_map_count(parse_state, temp_location);
+	parse_state = tm__get_map_segment_count(parse_state, temp_location);
 
-	for (i32 i = 0; i < parse_state.tile_map_count; i++) {
-		parse_state = tm__read_tile_map_metadata(parse_state, memory,
+	for (i32 i = 0; i < parse_state.map_segment_count; i++) {
+		parse_state = tm__read_map_segment_metadata(parse_state, memory,
 							 temp_location);
 		parse_state =
-			tm__read_tile_map_tiles(parse_state, temp_location);
+			tm__read_map_segment_tiles(parse_state, temp_location);
 	}
 
 	return true;
 }
 
-static TileMapParseState tm__get_tile_map_count(TileMapParseState parse_state,
+static TileMapParseState tm__get_map_segment_count(TileMapParseState parse_state,
 						char *file_location)
 {
 	i32 count = 0;
@@ -82,40 +82,40 @@ static TileMapParseState tm__get_tile_map_count(TileMapParseState parse_state,
 		}
 	}
 
-	if (count <= MAX_TILE_MAPS) {
-		parse_state.tile_map_count = count;
+	if (count <= MAX_MAP_SEGMENTS) {
+		parse_state.map_segment_count = count;
 	}
 
 	return parse_state;
 }
 
 static TileMapParseState
-tm__handle_tile_map_metadata(TileMapParseState parse_state, Memory *memory,
-			     i32 state, i32 tile_map_index)
+tm__handle_map_segment_metadata(TileMapParseState parse_state, Memory *memory,
+			     i32 state, i32 map_segment_index)
 {
-	if (tile_map_index >= MAX_TILE_MAPS) {
+	if (map_segment_index >= MAX_MAP_SEGMENTS) {
 		return parse_state;
 	}
 
 	switch (state) {
 	case 0:
-		parse_state.tile_map = &memory->tile_maps[tile_map_index];
+		parse_state.map_segment = &memory->map_segments[map_segment_index];
 		break;
 	case 1:
-		parse_state.tile_map->top_connection =
-			&memory->tile_maps[tile_map_index];
+		parse_state.map_segment->top_connection =
+			&memory->map_segments[map_segment_index];
 		break;
 	case 2:
-		parse_state.tile_map->right_connection =
-			&memory->tile_maps[tile_map_index];
+		parse_state.map_segment->right_connection =
+			&memory->map_segments[map_segment_index];
 		break;
 	case 3:
-		parse_state.tile_map->bottom_connection =
-			&memory->tile_maps[tile_map_index];
+		parse_state.map_segment->bottom_connection =
+			&memory->map_segments[map_segment_index];
 		break;
 	case 4:
-		parse_state.tile_map->left_connection =
-			&memory->tile_maps[tile_map_index];
+		parse_state.map_segment->left_connection =
+			&memory->map_segments[map_segment_index];
 		break;
 	}
 
@@ -123,37 +123,37 @@ tm__handle_tile_map_metadata(TileMapParseState parse_state, Memory *memory,
 }
 
 static TileMapParseState
-tm__read_tile_map_metadata(TileMapParseState parse_state, Memory *memory,
+tm__read_map_segment_metadata(TileMapParseState parse_state, Memory *memory,
 			   char *file_location)
 {
 	i32 state          = 0;
-	i32 tile_map_index = 0;
+	i32 map_segment_index = 0;
 	for (i32 i = 0; i < 128; i++) {
 		char c = file_location[parse_state.file_index];
 		parse_state.file_index += 1;
 
 		if (c == '\n' || c == 0) {
-			if (tile_map_index >= 0) {
-				parse_state = tm__handle_tile_map_metadata(
+			if (map_segment_index >= 0) {
+				parse_state = tm__handle_map_segment_metadata(
 					parse_state, memory, state,
-					tile_map_index);
+					map_segment_index);
 			}
 			break;
 		} else if (c == '-') {
-			if (tile_map_index >= 0) {
-				parse_state = tm__handle_tile_map_metadata(
+			if (map_segment_index >= 0) {
+				parse_state = tm__handle_map_segment_metadata(
 					parse_state, memory, state,
-					tile_map_index);
+					map_segment_index);
 			}
-			tile_map_index = -1;
+			map_segment_index = -1;
 			state += 1;
 		} else if (c >= 48 && c <= 57) {
-			if (tile_map_index < 0)
-				tile_map_index = 0;
+			if (map_segment_index < 0)
+				map_segment_index = 0;
 
-			tile_map_index = tile_map_index * 10 + (c - '0');
+			map_segment_index = map_segment_index * 10 + (c - '0');
 		} else {
-			tile_map_index = -1;
+			map_segment_index = -1;
 			continue;
 		}
 	}
@@ -161,7 +161,7 @@ tm__read_tile_map_metadata(TileMapParseState parse_state, Memory *memory,
 	return parse_state;
 }
 
-static TileMapParseState tm__read_tile_map_tiles(TileMapParseState parse_state,
+static TileMapParseState tm__read_map_segment_tiles(TileMapParseState parse_state,
 						 char *file_location)
 {
 	for (i32 y = 0; y < SCREEN_HEIGHT_TILES; y++) {
@@ -176,10 +176,10 @@ static TileMapParseState tm__read_tile_map_tiles(TileMapParseState parse_state,
 					break;
 				} else if (c == ',') {
 					if (tile_number > 0) {
-						tm__set_tile_map_value(
+						tm__set_map_segment_value(
 							x, y, layer,
 							tile_number,
-							parse_state.tile_map);
+							parse_state.map_segment);
 					}
 					tile_number = 0;
 					layer += 1;
@@ -196,21 +196,21 @@ static TileMapParseState tm__read_tile_map_tiles(TileMapParseState parse_state,
 	return parse_state;
 }
 
-static void tm__set_tile_map_value(i32 x, i32 y, i32 layer, i32 tile_number,
-				   TileMap *tile_map)
+static void tm__set_map_segment_value(i32 x, i32 y, i32 layer, i32 tile_number,
+				   MapSegment *map_segment)
 {
 	switch (layer) {
 	case 0:
-		tile_map->tile_map[y][x] = (tile_number & 0xFFFF) << 16;
+		map_segment->tiles[y][x] = (tile_number & 0xFFFF) << 16;
 		break;
 	case 1: {
 
-		tile_map->tile_map[y][x] =
-			tile_map->tile_map[y][x] | tile_number;
+		map_segment->tiles[y][x] =
+			map_segment->tiles[y][x] | tile_number;
 		break;
 	}
 	case 2:
-		tile_map->tile_props[y][x] = tile_number;
+		map_segment->tile_props[y][x] = tile_number;
 		break;
 	default:
 		break;

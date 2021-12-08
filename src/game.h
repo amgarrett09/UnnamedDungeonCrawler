@@ -28,7 +28,7 @@
 #define TILE_HEIGHT 32
 #define SCREEN_WIDTH_TILES 40
 #define SCREEN_HEIGHT_TILES 20
-#define MAX_TILE_MAPS 64
+#define MAX_MAP_SEGMENTS 64
 #define SAMPLES_PER_SECOND 44100
 #define BYTES_PER_SAMPLE 4
 #define TARGET_FRAME_RATE 60
@@ -104,19 +104,19 @@ typedef struct {
 	char player_sprites[MAX_PLAYER_SPRITE_SIZE];
 } PlayerState;
 
-typedef struct TileMap {
+typedef struct MapSegment {
 	/* Format for tile map: (background_tile << 16) | foreground_tile */
-	i32 tile_map[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
+	i32 tiles[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
 	/*
 	 * Format for tile_props:
 	 * (warp_map << 24) | (warp_x << 16) | (warp_y << 8) | flags
 	 */
 	i32 tile_props[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
-	struct TileMap *top_connection;
-	struct TileMap *right_connection;
-	struct TileMap *bottom_connection;
-	struct TileMap *left_connection;
-} TileMap;
+	struct MapSegment *top_connection;
+	struct MapSegment *right_connection;
+	struct MapSegment *bottom_connection;
+	struct MapSegment *left_connection;
+} MapSegment;
 
 typedef enum {
 	TRANS_STATE_NORMAL = 0,
@@ -126,8 +126,8 @@ typedef enum {
 } TransitionState;
 
 typedef struct {
-	TileMap *current_tile_map;
-	TileMap *next_tile_map;
+	MapSegment *current_map_segment;
+	MapSegment *next_map_segment;
 	void *tile_set;
 	TransitionState trans_state;
 	Direction transition_direction;
@@ -137,7 +137,7 @@ typedef struct {
 typedef struct {
 	PlayerState player_state;
 	WorldState world_state;
-	TileMap tile_maps[MAX_TILE_MAPS];
+	MapSegment map_segments[MAX_MAP_SEGMENTS];
 	void *temp_storage;
 	size_t temp_storage_size;
 	size_t temp_next_load_offset;
