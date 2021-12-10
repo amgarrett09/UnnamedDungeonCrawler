@@ -16,7 +16,7 @@
  */
 
 /*
- * Dependencies: <stdint.h>, <stdbool.h>
+ * Dependencies: <stdint.h>, <stdbool.h>, hashmap.c
  */
 
 #define WIN_X 10
@@ -33,16 +33,7 @@
 #define BYTES_PER_SAMPLE 4
 #define TARGET_FRAME_RATE 60
 #define MAX_PLAYER_SPRITE_SIZE 100 * 1024
-
-typedef int8_t i8;
-typedef int16_t i16;
-typedef int32_t i32;
-typedef int64_t i64;
-
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
+#define MAX_SEGMENT_ENTITIES 50
 
 #pragma pack(push, 1)
 typedef struct {
@@ -104,18 +95,25 @@ typedef struct {
 	char player_sprites[MAX_PLAYER_SPRITE_SIZE];
 } PlayerState;
 
+typedef struct Vec2 {
+	i32 x;
+	i32 y;
+} Vec2;
+
+typedef struct Entities {
+	Vec2 positions[MAX_SEGMENT_ENTITIES];
+	i32 num_entities;
+} Entities;
+
 typedef struct MapSegment {
-	/* Format for tile map: (background_tile << 16) | foreground_tile */
-	i32 tiles[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
-	/*
-	 * Format for tile_props:
-	 * (warp_map << 24) | (warp_x << 16) | (warp_y << 8) | flags
-	 */
-	i32 tile_props[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
+	i32 index;
 	struct MapSegment *top_connection;
 	struct MapSegment *right_connection;
 	struct MapSegment *bottom_connection;
 	struct MapSegment *left_connection;
+	/* Format for tiles: (bg_tile_num << 16) | fg_tile_num */
+	i32 tiles[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
+	struct Entities entities;
 } MapSegment;
 
 typedef enum {
@@ -132,6 +130,7 @@ typedef struct {
 	TransitionState trans_state;
 	Direction transition_direction;
 	i32 transition_counter;
+	IntHashMap tile_props;
 } WorldState;
 
 typedef struct {

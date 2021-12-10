@@ -21,22 +21,24 @@
 
 typedef struct TileMapParseState {
 	MapSegment *map_segment;
+	IntHashMap *tile_props;
 	i32 file_index;
 	i32 map_segment_count;
 } TileMapParseState;
 
-static TileMapParseState tm__get_map_segment_count(TileMapParseState parse_state,
-						char *file_location);
+static TileMapParseState
+tm__get_map_segment_count(TileMapParseState parse_state, char *file_location);
 static TileMapParseState
 tm__handle_map_segment_metadata(TileMapParseState parse_state, Memory *memory,
-			     i32 state, i32 map_segment_index);
+				i32 state, i32 map_segment_index);
 static TileMapParseState
 tm__read_map_segment_metadata(TileMapParseState parse_state, Memory *memory,
-			   char *file_location);
-static TileMapParseState tm__read_map_segment_tiles(TileMapParseState parse_state,
-						 char *file_location);
+			      char *file_location);
+static TileMapParseState
+tm__read_map_segment_tiles(TileMapParseState parse_state, char *file_location);
 static void tm__set_map_segment_value(i32 x, i32 y, i32 layer, i32 tile_number,
-				   MapSegment *map_segment);
+				      MapSegment *map_segment,
+				      IntHashMap *tile_props);
 
 bool tm_load_tile_map(const char file_path[], Memory *memory)
 {
@@ -48,7 +50,8 @@ bool tm_load_tile_map(const char file_path[], Memory *memory)
 
 	TileMapParseState parse_state = {
 		.map_segment       = &memory->map_segments[0],
-		.file_index     = 0,
+		.tile_props        = &memory->world_state.tile_props,
+		.file_index        = 0,
 		.map_segment_count = 0,
 	};
 
@@ -56,7 +59,7 @@ bool tm_load_tile_map(const char file_path[], Memory *memory)
 
 	for (i32 i = 0; i < parse_state.map_segment_count; i++) {
 		parse_state = tm__read_map_segment_metadata(parse_state, memory,
-							 temp_location);
+							    temp_location);
 		parse_state =
 			tm__read_map_segment_tiles(parse_state, temp_location);
 	}
@@ -64,8 +67,8 @@ bool tm_load_tile_map(const char file_path[], Memory *memory)
 	return true;
 }
 
-static TileMapParseState tm__get_map_segment_count(TileMapParseState parse_state,
-						char *file_location)
+static TileMapParseState
+tm__get_map_segment_count(TileMapParseState parse_state, char *file_location)
 {
 	i32 count = 0;
 
@@ -91,7 +94,7 @@ static TileMapParseState tm__get_map_segment_count(TileMapParseState parse_state
 
 static TileMapParseState
 tm__handle_map_segment_metadata(TileMapParseState parse_state, Memory *memory,
-			     i32 state, i32 map_segment_index)
+				i32 state, i32 map_segment_index)
 {
 	if (map_segment_index >= MAX_MAP_SEGMENTS) {
 		return parse_state;
@@ -99,7 +102,9 @@ tm__handle_map_segment_metadata(TileMapParseState parse_state, Memory *memory,
 
 	switch (state) {
 	case 0:
-		parse_state.map_segment = &memory->map_segments[map_segment_index];
+		parse_state.map_segment =
+			&memory->map_segments[map_segment_index];
+		parse_state.map_segment->index = map_segment_index;
 		break;
 	case 1:
 		parse_state.map_segment->top_connection =
@@ -124,9 +129,9 @@ tm__handle_map_segment_metadata(TileMapParseState parse_state, Memory *memory,
 
 static TileMapParseState
 tm__read_map_segment_metadata(TileMapParseState parse_state, Memory *memory,
-			   char *file_location)
+			      char *file_location)
 {
-	i32 state          = 0;
+	i32 state             = 0;
 	i32 map_segment_index = 0;
 	for (i32 i = 0; i < 128; i++) {
 		char c = file_location[parse_state.file_index];
@@ -161,8 +166,8 @@ tm__read_map_segment_metadata(TileMapParseState parse_state, Memory *memory,
 	return parse_state;
 }
 
-static TileMapParseState tm__read_map_segment_tiles(TileMapParseState parse_state,
-						 char *file_location)
+static TileMapParseState
+tm__read_map_segment_tiles(TileMapParseState parse_state, char *file_location)
 {
 	for (i32 y = 0; y < SCREEN_HEIGHT_TILES; y++) {
 		for (i32 x = 0; x < SCREEN_WIDTH_TILES; x++) {
@@ -179,7 +184,8 @@ static TileMapParseState tm__read_map_segment_tiles(TileMapParseState parse_stat
 						tm__set_map_segment_value(
 							x, y, layer,
 							tile_number,
-							parse_state.map_segment);
+							parse_state.map_segment,
+							parse_state.tile_props);
 					}
 					tile_number = 0;
 					layer += 1;
@@ -197,7 +203,8 @@ static TileMapParseState tm__read_map_segment_tiles(TileMapParseState parse_stat
 }
 
 static void tm__set_map_segment_value(i32 x, i32 y, i32 layer, i32 tile_number,
-				   MapSegment *map_segment)
+				      MapSegment *map_segment,
+				      IntHashMap *tile_props)
 {
 	switch (layer) {
 	case 0:
@@ -209,9 +216,14 @@ static void tm__set_map_segment_value(i32 x, i32 y, i32 layer, i32 tile_number,
 			map_segment->tiles[y][x] | tile_number;
 		break;
 	}
-	case 2:
-		map_segment->tile_props[y][x] = tile_number;
+	case 2: {
+		i32 segment_index = map_segment->index;
+		u32 key           = util_compactify_three_u32(
+                        segment_index, (u32)x & 0xFF, (u32)y & 0xFF);
+
+		hash_insert_int(tile_props, key, (u32)tile_number);
 		break;
+	}
 	default:
 		break;
 	}

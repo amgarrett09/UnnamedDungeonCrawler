@@ -38,3 +38,12 @@ i32 util_bit_scan_forward_u(u32 number)
 
 	return index;
 }
+
+u32 util_compactify_three_u32(u16 a, u8 b, u8 c)
+{
+	u32 out = (u32)a << 16;
+	out |= (u32)b << 8;
+	out |= (u32)c;
+
+	return out;
+}
