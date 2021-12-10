@@ -23,7 +23,6 @@ typedef struct IntPair {
 } IntPair;
 /* TODO: Resize hash map when needed */
 typedef struct IntHashMap {
-	/* Top 32 bits are key, lower 32 bits are value */
 	IntPair data[HASHMAP_SIZE];
 } IntHashMap;
 
