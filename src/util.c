@@ -16,6 +16,10 @@
  */
 
 /*
+ * Dependencies: game.h
+ */
+
+/*
  * Finds first set bit in an unsigned integer, starting from lowest bit.
  * Returns the index of the set bit.
  */
@@ -46,4 +50,13 @@ u32 util_compactify_three_u32(u16 a, u8 b, u8 c)
 	out |= (u32)c;
 
 	return out;
+}
+
+i32 util_convert_tile_to_pixel(i32 tile_value, CoordDimension dimension)
+{
+	if (dimension == Y_DIMENSION) {
+		return TILE_HEIGHT * tile_value + (TILE_HEIGHT / 2);
+	} else {
+		return TILE_WIDTH * tile_value + (TILE_WIDTH / 2);
+	}
 }

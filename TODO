@@ -1,0 +1,6 @@
+Entity line of sight
+Entity following behavior
+Hitpoints
+Attacks
+
+Fix seg fault when there's an invalid tile number

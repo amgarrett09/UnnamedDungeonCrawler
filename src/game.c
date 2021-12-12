@@ -26,19 +26,19 @@ static const i32 SCREEN_WIDTH_PIXELS  = SCREEN_WIDTH_TILES * TILE_WIDTH;
 static void check_and_prep_screen_transition(WorldState *world_state,
 					     PlayerState *player_state,
 					     MapSegment *map_segments);
-static i32 convert_tile_to_pixel(i32 tile_value, CoordDimension dimension);
 static void display_bitmap_tile(i32 *image_buffer, Bitmap *bmp, i32 tile_number,
 				i32 target_x, i32 target_y, i32 tile_width,
 				i32 tile_height, bool mirrored);
 
 static size_t load_bitmap(const char file_path[], void *load_location,
 			  size_t max_size);
-static void move_player(PlayerState *player_state, ScreenState *screen_state);
+static void move_player(WorldState *world_state, PlayerState *player_state,
+			ScreenState *screen_state);
 static void handle_player_collision(WorldState *world_state,
 				    PlayerState *player_state, Input *input,
 				    ScreenState *screen_state);
 static void hot_tile_push(ScreenState *screen_state, i32 tile_x, i32 tile_y);
-static void render_entities(i32 *image_buffer, Entities *entities);
+static void render_entities(i32 *image_buffer, MapSegment *map_segment);
 static void render_hot_tiles(ScreenState *screen_state,
 			     WorldState *world_state);
 static void render_player(i32 *image_buffer, PlayerState *player_state);
@@ -73,8 +73,10 @@ void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt)
 
 		Entities *entities =
 			&world_state->current_map_segment->entities;
-		entities->positions[entities->num_entities++] =
+		entities->data[entities->num_entities].position =
 			test_entity_position;
+		entities->data[entities->num_entities++].face_direction =
+			RIGHTDIR;
 
 		u32 key   = util_compactify_three_u32(0, test_entity_position.x,
                                                     test_entity_position.y);
@@ -86,13 +88,14 @@ void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt)
 	player_state->tile_x = 15;
 	player_state->tile_y = 3;
 	player_state->pixel_x =
-		convert_tile_to_pixel(player_state->tile_x, X_DIMENSION);
+		util_convert_tile_to_pixel(player_state->tile_x, X_DIMENSION);
 	player_state->pixel_y =
-		convert_tile_to_pixel(player_state->tile_y, Y_DIMENSION);
+		util_convert_tile_to_pixel(player_state->tile_y, Y_DIMENSION);
 	player_state->move_counter   = 0;
 	player_state->move_direction = NULLDIR;
-	player_state->speed          = ((TILE_WIDTH / 8) * dt) / 16;
 	player_state->sprite_number  = 2;
+
+	world_state->turn_duration = 8 * (16 / dt);
 
 	render_map_segment(screen_state->image_buffer,
 			   world_state->current_map_segment,
@@ -128,13 +131,15 @@ void game_update_and_render(Memory *memory, Input *input,
 					screen_state);
 
 	} else {
-		move_player(player_state, screen_state);
+		Entities *entities =
+			&world_state->current_map_segment->entities;
+		ai_run_ai_system(entities, world_state, player_state);
+		move_player(world_state, player_state, screen_state);
 	}
 
 	render_hot_tiles(screen_state, world_state);
 
-	render_entities(image_buffer,
-			&world_state->current_map_segment->entities);
+	render_entities(image_buffer, world_state->current_map_segment);
 
 	render_player(image_buffer, player_state);
 
@@ -192,15 +197,6 @@ static void check_and_prep_screen_transition(WorldState *world_state,
 			world_state->trans_state      = TRANS_STATE_WARPING;
 			world_state->next_map_segment = &map_segments[warp_map];
 		}
-	}
-}
-
-static i32 convert_tile_to_pixel(i32 tile_value, CoordDimension dimension)
-{
-	if (dimension == Y_DIMENSION) {
-		return TILE_HEIGHT * tile_value + (TILE_HEIGHT / 2);
-	} else {
-		return TILE_WIDTH * tile_value + (TILE_WIDTH / 2);
 	}
 }
 
@@ -321,8 +317,9 @@ static void handle_player_collision(WorldState *world_state,
 
 		if (new_tile_y >= 0 && new_tile_y < SCREEN_HEIGHT_TILES &&
 		    tile_x >= 0 && tile_x < SCREEN_WIDTH_TILES) {
-			is_not_colliding = !(current_tile_props & 1) &&
-				!(current_tile_props & ((u64)0xFF << 32));
+			is_not_colliding =
+				!(current_tile_props & TPROP_HAS_COLLISION) &&
+				!(current_tile_props & TPROP_ENTITY);
 		}
 
 		if (is_not_colliding) {
@@ -351,8 +348,9 @@ static void handle_player_collision(WorldState *world_state,
 
 		if (new_tile_x >= 0 && new_tile_x < SCREEN_WIDTH_TILES &&
 		    tile_y >= 0 && tile_y < SCREEN_HEIGHT_TILES) {
-			is_not_colliding = !(current_tile_props & 1) &&
-				!(current_tile_props & ((u64)0xFF << 32));
+			is_not_colliding =
+				!(current_tile_props & TPROP_HAS_COLLISION) &&
+				!(current_tile_props & TPROP_ENTITY);
 		}
 
 		if (is_not_colliding) {
@@ -441,7 +439,8 @@ static size_t load_bitmap(const char file_path[], void *load_location,
 	return bitmap_size;
 }
 
-static void move_player(PlayerState *player_state, ScreenState *screen_state)
+static void move_player(WorldState *world_state, PlayerState *player_state,
+			ScreenState *screen_state)
 {
 	switch (player_state->move_direction) {
 	case UPDIR:
@@ -449,46 +448,50 @@ static void move_player(PlayerState *player_state, ScreenState *screen_state)
 			      player_state->tile_y + 1);
 		hot_tile_push(screen_state, player_state->tile_x,
 			      player_state->tile_y);
-		player_state->pixel_y -= player_state->speed;
+		player_state->pixel_y -=
+			TILE_HEIGHT / world_state->turn_duration;
 		break;
 	case RIGHTDIR:
 		hot_tile_push(screen_state, player_state->tile_x - 1,
 			      player_state->tile_y);
 		hot_tile_push(screen_state, player_state->tile_x,
 			      player_state->tile_y);
-		player_state->pixel_x += player_state->speed;
+		player_state->pixel_x +=
+			TILE_WIDTH / world_state->turn_duration;
 		break;
 	case DOWNDIR:
 		hot_tile_push(screen_state, player_state->tile_x,
 			      player_state->tile_y - 1);
 		hot_tile_push(screen_state, player_state->tile_x,
 			      player_state->tile_y);
-		player_state->pixel_y += player_state->speed;
+		player_state->pixel_y +=
+			TILE_HEIGHT / world_state->turn_duration;
 		break;
 	case LEFTDIR:
 		hot_tile_push(screen_state, player_state->tile_x + 1,
 			      player_state->tile_y);
 		hot_tile_push(screen_state, player_state->tile_x,
 			      player_state->tile_y);
-		player_state->pixel_x -= player_state->speed;
+		player_state->pixel_x -=
+			TILE_WIDTH / world_state->turn_duration;
 		break;
 	default:
 		break;
 	}
 
-	player_state->move_counter -= player_state->speed;
+	player_state->move_counter -= TILE_WIDTH / world_state->turn_duration;
 }
 
-static void render_entities(i32 *image_buffer, Entities *entities)
+static void render_entities(i32 *image_buffer, MapSegment *map_segment)
 {
-	i32 num_entities = entities->num_entities;
-	Vec2 *positions  = entities->positions;
+	Entities *entities = &map_segment->entities;
+	i32 num_entities   = entities->num_entities;
 
 	for (i32 i = 0; i < num_entities; i++) {
-		i32 tile_x  = positions[i].x;
-		i32 tile_y  = positions[i].y;
-		i32 pixel_x = convert_tile_to_pixel(tile_x, X_DIMENSION);
-		i32 pixel_y = convert_tile_to_pixel(tile_y, Y_DIMENSION);
+		i32 tile_x  = entities->data[i].position.x;
+		i32 tile_y  = entities->data[i].position.y;
+		i32 pixel_x = util_convert_tile_to_pixel(tile_x, X_DIMENSION);
+		i32 pixel_y = util_convert_tile_to_pixel(tile_y, Y_DIMENSION);
 
 		render_rectangle(image_buffer, pixel_x - 16, pixel_x + 16,
 				 pixel_y - 16, pixel_y + 16, 0.0f, 1.0f, 1.0f);
@@ -620,22 +623,22 @@ static void scroll_screens(i32 *image_buffer, PlayerState *player_state,
 		switch (transition_direction) {
 		case UPDIR:
 			player_state->tile_y += SCREEN_HEIGHT_TILES;
-			player_state->pixel_y = convert_tile_to_pixel(
+			player_state->pixel_y = util_convert_tile_to_pixel(
 				player_state->tile_y, Y_DIMENSION);
 			break;
 		case DOWNDIR:
 			player_state->tile_y -= SCREEN_HEIGHT_TILES;
-			player_state->pixel_y = convert_tile_to_pixel(
+			player_state->pixel_y = util_convert_tile_to_pixel(
 				player_state->tile_y, Y_DIMENSION);
 			break;
 		case RIGHTDIR:
 			player_state->tile_x -= SCREEN_WIDTH_TILES;
-			player_state->pixel_x = convert_tile_to_pixel(
+			player_state->pixel_x = util_convert_tile_to_pixel(
 				player_state->tile_x, X_DIMENSION);
 			break;
 		case LEFTDIR:
 			player_state->tile_x += SCREEN_WIDTH_TILES;
-			player_state->pixel_x = convert_tile_to_pixel(
+			player_state->pixel_x = util_convert_tile_to_pixel(
 				player_state->tile_x, X_DIMENSION);
 			break;
 		default:
@@ -715,9 +718,9 @@ static void warp_to_screen(i32 *image_buffer, PlayerState *player_state,
 	player_state->tile_x   = (current_tile_props & 0x00FF0000) >> 16;
 	player_state->tile_y   = (current_tile_props & 0x0000FF00) >> 8;
 	player_state->pixel_y =
-		convert_tile_to_pixel(player_state->tile_y, Y_DIMENSION);
+		util_convert_tile_to_pixel(player_state->tile_y, Y_DIMENSION);
 	player_state->pixel_x =
-		convert_tile_to_pixel(player_state->tile_x, X_DIMENSION);
+		util_convert_tile_to_pixel(player_state->tile_x, X_DIMENSION);
 
 	render_map_segment(image_buffer, world_state->next_map_segment,
 			   world_state->tile_set, 0, 0);

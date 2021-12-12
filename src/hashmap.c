@@ -21,9 +21,11 @@ typedef struct IntPair {
 	u32 key;
 	u64 value;
 } IntPair;
+
 /* TODO: Resize hash map when needed */
 typedef struct IntHashMap {
 	IntPair data[HASHMAP_SIZE];
+	i32 filled_cells;
 } IntHashMap;
 
 static u32 hash_function(u32 input);
@@ -45,7 +47,8 @@ i32 hash_insert_int(IntHashMap *int_hash_map, u32 key, u64 value)
 			IntPair data_to_store = {.key = key, .value = value};
 
 			int_hash_map->data[index] = data_to_store;
-			rc                        = 0;
+			int_hash_map->filled_cells++;
+			rc = 0;
 			break;
 		}
 
@@ -94,6 +97,7 @@ void hash_delete_int(IntHashMap *int_hash_map, u32 key)
 		IntPair stored_data = int_hash_map->data[index];
 
 		if (!stored_data.key) {
+			int_hash_map->filled_cells--;
 			break;
 		} else if (stored_data.key &&
 			   keys_match_int(stored_data.key, key)) {

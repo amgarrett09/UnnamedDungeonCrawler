@@ -91,7 +91,6 @@ typedef struct {
 	i32 tile_y;
 	i32 move_counter;
 	Direction move_direction;
-	i32 speed;
 	char player_sprites[MAX_PLAYER_SPRITE_SIZE];
 } PlayerState;
 
@@ -100,9 +99,22 @@ typedef struct Vec2 {
 	i32 y;
 } Vec2;
 
+typedef enum {
+	AIST_ENEMY_IDLE,
+	AIST_ENEMY_CHASE,
+} AIStateIndex;
+
+typedef struct Entity {
+	Vec2 position;
+	AIStateIndex current_ai_state;
+	AIStateIndex idle_ai_state;
+	i32 ai_counter;
+	Direction face_direction;
+} Entity;
+
 typedef struct Entities {
-	Vec2 positions[MAX_SEGMENT_ENTITIES];
 	i32 num_entities;
+	Entity data[MAX_SEGMENT_ENTITIES];
 } Entities;
 
 typedef struct MapSegment {
@@ -113,7 +125,7 @@ typedef struct MapSegment {
 	struct MapSegment *left_connection;
 	/* Format for tiles: (bg_tile_num << 16) | fg_tile_num */
 	i32 tiles[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
-	struct Entities entities;
+	Entities entities;
 } MapSegment;
 
 typedef enum {
@@ -130,8 +142,14 @@ typedef struct {
 	TransitionState trans_state;
 	Direction transition_direction;
 	i32 transition_counter;
+	i32 turn_duration;
 	IntHashMap tile_props;
 } WorldState;
+
+typedef enum {
+	TPROP_HAS_COLLISION = 0x01,
+	TPROP_ENTITY        = 0x000000FF00000000,
+} TilePropMask;
 
 typedef struct {
 	PlayerState player_state;

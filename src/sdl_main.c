@@ -33,9 +33,10 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
-#include "util.c"
 #include "hashmap.c"
 #include "game.h"
+#include "util.c"
+#include "ai.c"
 #include "memory.c"
 #include "tile_map.c"
 #include "game.c"
