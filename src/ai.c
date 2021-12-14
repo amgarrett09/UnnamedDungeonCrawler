@@ -31,8 +31,8 @@ static void ai_enemy_chase(Entity *entity, WorldState *world_state,
 			   PlayerState *player_state);
 
 static const AIState ai_states[] = {
-	{1, &ai_enemy_idle, AIST_ENEMY_IDLE},  /* AIST_ENEMY_IDLE */
-	{1, &ai_enemy_chase, AIST_ENEMY_CHASE} /* AIST_ENEMY_CHASE */
+	{1, ai_enemy_idle, AIST_ENEMY_IDLE},  /* AIST_ENEMY_IDLE */
+	{1, ai_enemy_chase, AIST_ENEMY_CHASE} /* AIST_ENEMY_CHASE */
 };
 
 void ai_run_ai_system(Entities *entities, WorldState *world_state,

@@ -35,6 +35,8 @@
 #define MAX_PLAYER_SPRITE_SIZE 100 * 1024
 #define MAX_SEGMENT_ENTITIES 50
 
+struct Memory;
+
 #pragma pack(push, 1)
 typedef struct {
 	u16 signature;
@@ -135,6 +137,19 @@ typedef enum {
 	TRANS_STATE_WARPING
 } TransitionState;
 
+typedef struct IntPair {
+	u32 key;
+	u64 value;
+} IntPair;
+
+typedef struct IntHashMap {
+	i32 filled_cells;
+	IntPair *data;
+	struct Memory *memory;
+	void *(*alloc_func)(struct Memory *, size_t);
+	size_t size;
+} IntHashMap;
+
 typedef struct {
 	MapSegment *current_map_segment;
 	MapSegment *next_map_segment;
@@ -151,7 +166,7 @@ typedef enum {
 	TPROP_ENTITY        = 0x000000FF00000000,
 } TilePropMask;
 
-typedef struct {
+typedef struct Memory {
 	PlayerState player_state;
 	WorldState world_state;
 	MapSegment map_segments[MAX_MAP_SEGMENTS];

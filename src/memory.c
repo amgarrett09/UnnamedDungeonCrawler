@@ -48,6 +48,23 @@ void *mem_load_file_to_temp_storage(Memory *memory, const char file_path[],
 	return (void *)load_location;
 }
 
+void *mem_reserve_temp_storage(Memory *memory, size_t size_bytes)
+{
+	ssize_t max_size = (ssize_t)memory->temp_storage_size -
+		(ssize_t)memory->temp_next_load_offset;
+
+	if ((ssize_t)size_bytes > max_size)
+		return NULL;
+
+	char *load_location =
+		(char *)memory->temp_storage + memory->temp_next_load_offset;
+
+	memory->temp_next_load_offset = mem__get_next_aligned_offset(
+		memory->temp_next_load_offset, size_bytes, 32);
+
+	return (void *)load_location;
+}
+
 static size_t mem__get_next_aligned_offset(size_t start_offset,
 					   size_t min_to_add, size_t alignment)
 {
