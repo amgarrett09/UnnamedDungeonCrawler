@@ -63,8 +63,8 @@ void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt)
 	world_state->tile_set = mem_load_file_to_temp_storage(
 		memory, "resources/tile_set.bmp", &load_bitmap, false);
 
-	world_state->tile_props = hash_create_hash_int(memory,
-			mem_reserve_temp_storage);
+	world_state->tile_props =
+		hash_create_hash_int(memory, mem_reserve_temp_storage);
 
 	bool tile_map_loaded =
 		tm_load_tile_map("resources/maps/test_tilemap.tm", memory);

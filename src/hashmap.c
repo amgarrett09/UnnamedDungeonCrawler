@@ -21,21 +21,21 @@
 
 #define HASHMAP_INIT_SIZE 4096
 
-
 static u32 hash_function(u32 input);
 static bool keys_match_int(u32 key1, u32 key2);
 static bool key_has_lower_hash_int(u32 key1, u32 key2, size_t map_size);
 static void hash__realloc_int();
 
-IntHashMap hash_create_hash_int(Memory *memory, 
-		                void *(*alloc_func)(Memory *, size_t)) {
+IntHashMap hash_create_hash_int(Memory *memory,
+				void *(*alloc_func)(Memory *, size_t))
+{
 	IntHashMap map = {};
-	
-	map.data = (IntPair *)alloc_func(memory, 
-			                 HASHMAP_INIT_SIZE * sizeof(u64));
-	map.memory = memory;
+
+	map.data =
+		(IntPair *)alloc_func(memory, HASHMAP_INIT_SIZE * sizeof(u64));
+	map.memory     = memory;
 	map.alloc_func = alloc_func;
-	map.size = HASHMAP_INIT_SIZE;
+	map.size       = HASHMAP_INIT_SIZE;
 
 	return map;
 }
@@ -45,8 +45,8 @@ i32 hash_insert_int(IntHashMap *int_hash_map, u32 key, u64 value)
 	if (!int_hash_map->data)
 		return -1;
 
-	i32 rc = -1;
-	u32 x  = 0;
+	i32 rc      = -1;
+	u32 x       = 0;
 	size_t size = int_hash_map->size;
 
 	u32 key_hash = hash_function(key);
@@ -67,7 +67,7 @@ i32 hash_insert_int(IntHashMap *int_hash_map, u32 key, u64 value)
 		x++;
 	}
 
-	if (int_hash_map->filled_cells*sizeof(u64) > int_hash_map->size / 2) {
+	if (int_hash_map->filled_cells * sizeof(u64) > int_hash_map->size / 2) {
 		hash__realloc_int();
 	}
 
@@ -79,8 +79,8 @@ u64 hash_get_int(IntHashMap *int_hash_map, u32 key)
 	if (!int_hash_map->data)
 		return 0;
 
-	u64 result = 0;
-	u32 x      = 0;
+	u64 result  = 0;
+	u32 x       = 0;
 	size_t size = int_hash_map->size;
 
 	u32 key_hash = hash_function(key);
@@ -108,7 +108,7 @@ void hash_delete_int(IntHashMap *int_hash_map, u32 key)
 	if (!int_hash_map->data)
 		return;
 
-	u32 x = 0;
+	u32 x       = 0;
 	size_t size = int_hash_map->size;
 
 	u32 key_hash         = hash_function(key);
@@ -132,8 +132,7 @@ void hash_delete_int(IntHashMap *int_hash_map, u32 key)
 			deleted                         = true;
 		} else if (deleted && stored_data.key &&
 			   key_has_lower_hash_int(stored_data.key,
-						  deleted_data.key,
-						  size)) {
+						  deleted_data.key, size)) {
 			int_hash_map->data[deleted_index] = stored_data;
 			int_hash_map->data[index].key     = 0;
 			int_hash_map->data[index].value   = 0;
@@ -170,7 +169,8 @@ static bool key_has_lower_hash_int(u32 key1, u32 key2, size_t map_size)
 }
 
 /* TODO: implement reallocation and rehashing of data */
-static void hash__realloc_int() {
+static void hash__realloc_int()
+{
 	printf("Hash map realloc not implemented yet!\n");
 	return;
 }
