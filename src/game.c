@@ -513,15 +513,16 @@ static void render_hot_tiles(ScreenState *screen_state, WorldState *world_state)
 
 	for (i32 i = 0; i < hot_tiles_length; i++) {
 		i32 data   = hot_tiles[i];
-		i32 tile_x = (data & 0xFFFF0000) >> 16;
-		i32 tile_y = data & 0x0000FFFF;
+		i32 tile_x = (data & HT_TILE_X) >> HT_TILE_X_SHIFT;
+		i32 tile_y = data & HT_TILE_Y;
 
 		i32 tile_data = tiles[tile_y * SCREEN_WIDTH_TILES + tile_x];
 		i32 target_y  = tile_y * TILE_HEIGHT;
 		i32 target_x  = tile_x * TILE_WIDTH;
 
-		i32 bg_tile_number = (tile_data & 0xFFFF0000) >> 16;
-		i32 fg_tile_number = tile_data & 0xFFFF;
+		i32 bg_tile_number =
+			(tile_data & TM_BG_TILE) >> TM_BG_TILE_SHIFT;
+		i32 fg_tile_number = tile_data & TM_FG_TILE;
 
 		display_bitmap_tile(image_buffer, world_state->tile_set,
 				    bg_tile_number, target_x, target_y,
@@ -588,8 +589,9 @@ static void render_map_segment(i32 *image_buffer, MapSegment *map_segment,
 			i32 target_x = column * TILE_WIDTH;
 			i32 tile_data =
 				tiles[row * SCREEN_WIDTH_TILES + column];
-			i32 bg_tile_number = (tile_data & 0xFFFF0000) >> 16;
-			i32 fg_tile_number = tile_data & 0xFFFF;
+			i32 bg_tile_number = 
+				(tile_data & TM_BG_TILE) >> TM_BG_TILE_SHIFT;
+			i32 fg_tile_number = tile_data & TM_FG_TILE;
 
 			display_bitmap_tile(image_buffer, tile_set,
 					    bg_tile_number, target_x + x_offset,
@@ -718,8 +720,10 @@ static void warp_to_screen(i32 *image_buffer, PlayerState *player_state,
 					    (u32)tile_y & 0xFF);
 
 	u32 current_tile_props = hash_get_int(tile_props, key);
-	player_state->tile_x   = (current_tile_props & 0x00FF0000) >> 16;
-	player_state->tile_y   = (current_tile_props & 0x0000FF00) >> 8;
+	player_state->tile_x =
+		(current_tile_props & TPROP_WTILE_X) >> TPROP_WTILE_X_SHIFT;
+	player_state->tile_y =
+		(current_tile_props & TPROP_WTILE_Y) >> TPROP_WTILE_Y_SHIFT;
 	player_state->pixel_y =
 		util_convert_tile_to_pixel(player_state->tile_y, Y_DIMENSION);
 	player_state->pixel_x =

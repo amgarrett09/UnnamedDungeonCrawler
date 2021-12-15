@@ -218,8 +218,7 @@ static void tm__set_map_segment_value(i32 x, i32 y, i32 layer, i32 tile_number,
 	}
 	case 2: {
 		i32 segment_index = map_segment->index;
-		u32 key           = util_compactify_three_u32(
-                        segment_index, (u32)x & 0xFF, (u32)y & 0xFF);
+		u32 key = util_compactify_three_u32(segment_index, x, y);
 
 		hash_insert_int(tile_props, key, (u32)tile_number);
 		break;

@@ -162,12 +162,28 @@ typedef struct {
 } WorldState;
 
 typedef enum {
+	HT_TILE_X       = 0xFFFF0000,
+	HT_TILE_X_SHIFT = 16,
+	HT_TILE_Y       = 0xFFFF,
+} HotTileMask;
+
+typedef enum {
+	TM_BG_TILE       = 0xFFFF0000,
+	TM_BG_TILE_SHIFT = 16,
+	TM_FG_TILE       = 0xFFFF,
+} TileMask;
+
+typedef enum {
 	TPROP_HAS_COLLISION  = 0x01,
 	TPROP_IS_WARP_TILE   = 0x02,
 	TPROP_ENTITY         = 0xFF00000000,
 	TPROP_ENTITY_SHIFT   = 32,
 	TPROP_WARP_MAP       = 0xFF000000,
 	TPROP_WARP_MAP_SHIFT = 24,
+	TPROP_WTILE_X        = 0xFF0000,
+	TPROP_WTILE_X_SHIFT  = 16,
+	TPROP_WTILE_Y        = 0xFF00,
+	TPROP_WTILE_Y_SHIFT  = 8,
 } TilePropMask;
 
 typedef struct Memory {
