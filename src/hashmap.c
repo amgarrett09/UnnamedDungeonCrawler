@@ -21,9 +21,9 @@
 
 #define HASHMAP_INIT_SIZE 4096
 
-static u32 hash_function(u32 input);
-static bool keys_match_int(u32 key1, u32 key2);
-static bool key_has_lower_hash_int(u32 key1, u32 key2, size_t map_size);
+static u32 hash__hash_function(u32 input);
+static bool hash__keys_match_int(u32 key1, u32 key2);
+static bool hash__key_has_lower_hash_int(u32 key1, u32 key2, size_t length);
 static void hash__realloc_int();
 
 IntHashMap hash_create_hash_int(Memory *memory,
@@ -31,11 +31,11 @@ IntHashMap hash_create_hash_int(Memory *memory,
 {
 	IntHashMap map = {};
 
-	map.data =
-		(IntPair *)alloc_func(memory, HASHMAP_INIT_SIZE * sizeof(u64));
+	map.data       = (IntPair *)alloc_func(memory,
+                                         HASHMAP_INIT_SIZE * sizeof(IntPair));
 	map.memory     = memory;
 	map.alloc_func = alloc_func;
-	map.size       = HASHMAP_INIT_SIZE;
+	map.length     = HASHMAP_INIT_SIZE;
 
 	return map;
 }
@@ -45,17 +45,18 @@ i32 hash_insert_int(IntHashMap *int_hash_map, u32 key, u64 value)
 	if (!int_hash_map->data)
 		return -1;
 
-	i32 rc      = -1;
-	u32 x       = 0;
-	size_t size = int_hash_map->size;
+	i32 rc        = -1;
+	u32 x         = 0;
+	size_t length = int_hash_map->length;
 
-	u32 key_hash = hash_function(key);
+	u32 key_hash = hash__hash_function(key);
 
-	while (x < size) {
-		u32 index           = (key_hash + x) & (size - 1);
+	while (x < length) {
+		u32 index           = (key_hash + x) & (length - 1);
 		IntPair stored_data = int_hash_map->data[index];
 
-		if (!stored_data.key || keys_match_int(stored_data.key, key)) {
+		if (!stored_data.key ||
+		    hash__keys_match_int(stored_data.key, key)) {
 			IntPair data_to_store = {.key = key, .value = value};
 
 			int_hash_map->data[index] = data_to_store;
@@ -67,7 +68,7 @@ i32 hash_insert_int(IntHashMap *int_hash_map, u32 key, u64 value)
 		x++;
 	}
 
-	if (int_hash_map->filled_cells * sizeof(u64) > int_hash_map->size / 2) {
+	if (int_hash_map->filled_cells > int_hash_map->length / 2) {
 		hash__realloc_int();
 	}
 
@@ -79,20 +80,20 @@ u64 hash_get_int(IntHashMap *int_hash_map, u32 key)
 	if (!int_hash_map->data)
 		return 0;
 
-	u64 result  = 0;
-	u32 x       = 0;
-	size_t size = int_hash_map->size;
+	u64 result    = 0;
+	u32 x         = 0;
+	size_t length = int_hash_map->length;
 
-	u32 key_hash = hash_function(key);
+	u32 key_hash = hash__hash_function(key);
 
-	while (x < size) {
-		u32 index           = (key_hash + x) & (size - 1);
+	while (x < length) {
+		u32 index           = (key_hash + x) & (length - 1);
 		IntPair stored_data = int_hash_map->data[index];
 
 		if (!stored_data.key) {
 			break;
 		} else if (stored_data.key &&
-			   keys_match_int(stored_data.key, key)) {
+			   hash__keys_match_int(stored_data.key, key)) {
 			result = stored_data.value;
 			break;
 		}
@@ -108,31 +109,33 @@ void hash_delete_int(IntHashMap *int_hash_map, u32 key)
 	if (!int_hash_map->data)
 		return;
 
-	u32 x       = 0;
-	size_t size = int_hash_map->size;
+	u32 x         = 0;
+	size_t length = int_hash_map->length;
 
-	u32 key_hash         = hash_function(key);
+	u32 key_hash         = hash__hash_function(key);
 	u32 deleted_index    = 0;
 	IntPair deleted_data = {};
 	bool deleted         = false;
 
-	while (x < size) {
-		u32 index           = (key_hash + x) & (size - 1);
+	while (x < length) {
+		u32 index           = (key_hash + x) & (length - 1);
 		IntPair stored_data = int_hash_map->data[index];
 
 		if (!stored_data.key) {
-			int_hash_map->filled_cells--;
+			if (x != 0) {
+				int_hash_map->filled_cells--;
+			}
 			break;
 		} else if (stored_data.key &&
-			   keys_match_int(stored_data.key, key)) {
+			   hash__keys_match_int(stored_data.key, key)) {
 			int_hash_map->data[index].key   = 0;
 			int_hash_map->data[index].value = 0;
 			deleted_index                   = index;
 			deleted_data                    = stored_data;
 			deleted                         = true;
 		} else if (deleted && stored_data.key &&
-			   key_has_lower_hash_int(stored_data.key,
-						  deleted_data.key, size)) {
+			   hash__key_has_lower_hash_int(
+				   stored_data.key, deleted_data.key, length)) {
 			int_hash_map->data[deleted_index] = stored_data;
 			int_hash_map->data[index].key     = 0;
 			int_hash_map->data[index].value   = 0;
@@ -148,7 +151,7 @@ void hash_delete_int(IntHashMap *int_hash_map, u32 key)
  * Adapted from the Hash Function Prospector project:
  * https://github.com/skeeto/hash-prospector
  */
-static u32 hash_function(u32 input)
+static u32 hash__hash_function(u32 input)
 {
 	u32 out = input;
 	out *= 0x43021123;
@@ -158,12 +161,12 @@ static u32 hash_function(u32 input)
 	return out;
 }
 
-static bool keys_match_int(u32 key1, u32 key2) { return key1 == key2; }
+static bool hash__keys_match_int(u32 key1, u32 key2) { return key1 == key2; }
 
-static bool key_has_lower_hash_int(u32 key1, u32 key2, size_t map_size)
+static bool hash__key_has_lower_hash_int(u32 key1, u32 key2, size_t length)
 {
-	u32 data_hash = hash_function(key1) & (map_size - 1);
-	u32 test_hash = hash_function(key2) & (map_size - 1);
+	u32 data_hash = hash__hash_function(key1) & (length - 1);
+	u32 test_hash = hash__hash_function(key2) & (length - 1);
 
 	return data_hash <= test_hash;
 }

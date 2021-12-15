@@ -213,6 +213,7 @@ static void ai_enemy_idle(Entity *entity, WorldState *world_state,
 			break;
 		}
 		default:
+			should_loop = false;
 			break;
 		}
 	}
@@ -273,6 +274,7 @@ static void ai_enemy_idle(Entity *entity, WorldState *world_state,
 			break;
 		}
 		default:
+			should_loop = false;
 			break;
 		}
 	}

@@ -144,10 +144,10 @@ typedef struct IntPair {
 
 typedef struct IntHashMap {
 	i32 filled_cells;
+	i32 length;
 	IntPair *data;
 	struct Memory *memory;
 	void *(*alloc_func)(struct Memory *, size_t);
-	size_t size;
 } IntHashMap;
 
 typedef struct {

@@ -53,7 +53,7 @@ void *mem_reserve_temp_storage(Memory *memory, size_t size_bytes)
 	ssize_t max_size = (ssize_t)memory->temp_storage_size -
 		(ssize_t)memory->temp_next_load_offset;
 
-	if ((ssize_t)size_bytes > max_size)
+	if (max_size <= 0 || size_bytes > (size_t)max_size)
 		return NULL;
 
 	char *load_location =
