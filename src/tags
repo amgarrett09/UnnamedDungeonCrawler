@@ -1,0 +1,245 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+AIST_ENEMY_CHASE	game.h	/^	AIST_ENEMY_CHASE,$/;"	e	enum:__anon9
+AIST_ENEMY_IDLE	game.h	/^	AIST_ENEMY_IDLE,$/;"	e	enum:__anon9
+AIState	ai.c	/^typedef struct AIState {$/;"	s	file:
+AIState	ai.c	/^} AIState;$/;"	t	typeref:struct:AIState	file:
+AIStateIndex	game.h	/^} AIStateIndex;$/;"	t	typeref:enum:__anon9
+BMPHeader	game.h	/^} BMPHeader;$/;"	t	typeref:struct:__anon1
+BYTES_PER_SAMPLE	game.h	33;"	d
+Bitmap	game.h	/^} Bitmap;$/;"	t	typeref:struct:__anon2
+CoordDimension	game.h	/^typedef enum { X_DIMENSION, Y_DIMENSION } CoordDimension;$/;"	t	typeref:enum:__anon3
+DOWNDIR	game.h	/^typedef enum { NULLDIR, UPDIR, RIGHTDIR, DOWNDIR, LEFTDIR } Direction;$/;"	e	enum:__anon4
+Direction	game.h	/^typedef enum { NULLDIR, UPDIR, RIGHTDIR, DOWNDIR, LEFTDIR } Direction;$/;"	t	typeref:enum:__anon4
+Entities	game.h	/^typedef struct Entities {$/;"	s
+Entities	game.h	/^} Entities;$/;"	t	typeref:struct:Entities
+Entity	game.h	/^typedef struct Entity {$/;"	s
+Entity	game.h	/^} Entity;$/;"	t	typeref:struct:Entity
+FileStream	game.h	/^} FileStream;$/;"	t	typeref:struct:__anon17
+HASHMAP_INIT_SIZE	hashmap.c	22;"	d	file:
+HT_TILE_X	game.h	/^	HT_TILE_X       = 0xFFFF0000,$/;"	e	enum:__anon12
+HT_TILE_X_SHIFT	game.h	/^	HT_TILE_X_SHIFT = 16,$/;"	e	enum:__anon12
+HT_TILE_Y	game.h	/^	HT_TILE_Y       = 0xFFFF,$/;"	e	enum:__anon12
+HotTileMask	game.h	/^} HotTileMask;$/;"	t	typeref:enum:__anon12
+Input	game.h	/^} Input;$/;"	t	typeref:struct:__anon7
+IntHashMap	game.h	/^typedef struct IntHashMap {$/;"	s
+IntHashMap	game.h	/^} IntHashMap;$/;"	t	typeref:struct:IntHashMap
+IntPair	game.h	/^typedef struct IntPair {$/;"	s
+IntPair	game.h	/^} IntPair;$/;"	t	typeref:struct:IntPair
+KEYMASK_DOWN	game.h	/^	KEYMASK_DOWN  = 0x04,$/;"	e	enum:__anon6
+KEYMASK_LEFT	game.h	/^	KEYMASK_LEFT  = 0x08$/;"	e	enum:__anon6
+KEYMASK_RIGHT	game.h	/^	KEYMASK_RIGHT = 0x02,$/;"	e	enum:__anon6
+KEYMASK_UP	game.h	/^	KEYMASK_UP    = 0x01,$/;"	e	enum:__anon6
+KEY_DOWN	game.h	/^typedef enum { KEY_NULL, KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT } Key;$/;"	e	enum:__anon5
+KEY_LEFT	game.h	/^typedef enum { KEY_NULL, KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT } Key;$/;"	e	enum:__anon5
+KEY_NULL	game.h	/^typedef enum { KEY_NULL, KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT } Key;$/;"	e	enum:__anon5
+KEY_RIGHT	game.h	/^typedef enum { KEY_NULL, KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT } Key;$/;"	e	enum:__anon5
+KEY_UP	game.h	/^typedef enum { KEY_NULL, KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT } Key;$/;"	e	enum:__anon5
+Key	game.h	/^typedef enum { KEY_NULL, KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT } Key;$/;"	t	typeref:enum:__anon5
+KeyMask	game.h	/^} KeyMask;$/;"	t	typeref:enum:__anon6
+LEFTDIR	game.h	/^typedef enum { NULLDIR, UPDIR, RIGHTDIR, DOWNDIR, LEFTDIR } Direction;$/;"	e	enum:__anon4
+MAX_MAP_SEGMENTS	game.h	31;"	d
+MAX_PLAYER_SPRITE_SIZE	game.h	35;"	d
+MAX_SEGMENT_ENTITIES	game.h	36;"	d
+MapSegment	game.h	/^typedef struct MapSegment {$/;"	s
+MapSegment	game.h	/^} MapSegment;$/;"	t	typeref:struct:MapSegment
+Memory	game.h	/^typedef struct Memory {$/;"	s
+Memory	game.h	/^} Memory;$/;"	t	typeref:struct:Memory
+NULLDIR	game.h	/^typedef enum { NULLDIR, UPDIR, RIGHTDIR, DOWNDIR, LEFTDIR } Direction;$/;"	e	enum:__anon4
+PlayerState	game.h	/^} PlayerState;$/;"	t	typeref:struct:__anon8
+RIGHTDIR	game.h	/^typedef enum { NULLDIR, UPDIR, RIGHTDIR, DOWNDIR, LEFTDIR } Direction;$/;"	e	enum:__anon4
+SAMPLES_PER_SECOND	game.h	32;"	d
+SCREEN_HEIGHT_PIXELS	game.c	/^static const i32 SCREEN_HEIGHT_PIXELS = SCREEN_HEIGHT_TILES * TILE_HEIGHT;$/;"	v	file:
+SCREEN_HEIGHT_TILES	game.h	30;"	d
+SCREEN_WIDTH_PIXELS	game.c	/^static const i32 SCREEN_WIDTH_PIXELS  = SCREEN_WIDTH_TILES * TILE_WIDTH;$/;"	v	file:
+SCREEN_WIDTH_TILES	game.h	29;"	d
+ScreenState	game.h	/^} ScreenState;$/;"	t	typeref:struct:__anon15
+Sound	game.h	/^} Sound;$/;"	t	typeref:struct:__anon16
+StorageState	sdl_main.c	/^typedef struct StorageState {$/;"	s	file:
+StorageState	sdl_main.c	/^} StorageState;$/;"	t	typeref:struct:StorageState	file:
+TARGET_FRAME_RATE	game.h	34;"	d
+TILE_HEIGHT	game.h	28;"	d
+TILE_WIDTH	game.h	27;"	d
+TM_BG_TILE	game.h	/^	TM_BG_TILE       = 0xFFFF0000,$/;"	e	enum:__anon13
+TM_BG_TILE_SHIFT	game.h	/^	TM_BG_TILE_SHIFT = 16,$/;"	e	enum:__anon13
+TM_FG_TILE	game.h	/^	TM_FG_TILE       = 0xFFFF,$/;"	e	enum:__anon13
+TPROP_ENTITY	game.h	/^	TPROP_ENTITY         = 0xFF00000000,$/;"	e	enum:__anon14
+TPROP_ENTITY_SHIFT	game.h	/^	TPROP_ENTITY_SHIFT   = 32,$/;"	e	enum:__anon14
+TPROP_HAS_COLLISION	game.h	/^	TPROP_HAS_COLLISION  = 0x01,$/;"	e	enum:__anon14
+TPROP_IS_WARP_TILE	game.h	/^	TPROP_IS_WARP_TILE   = 0x02,$/;"	e	enum:__anon14
+TPROP_WARP_MAP	game.h	/^	TPROP_WARP_MAP       = 0xFF000000,$/;"	e	enum:__anon14
+TPROP_WARP_MAP_SHIFT	game.h	/^	TPROP_WARP_MAP_SHIFT = 24,$/;"	e	enum:__anon14
+TPROP_WTILE_X	game.h	/^	TPROP_WTILE_X        = 0xFF0000,$/;"	e	enum:__anon14
+TPROP_WTILE_X_SHIFT	game.h	/^	TPROP_WTILE_X_SHIFT  = 16,$/;"	e	enum:__anon14
+TPROP_WTILE_Y	game.h	/^	TPROP_WTILE_Y        = 0xFF00,$/;"	e	enum:__anon14
+TPROP_WTILE_Y_SHIFT	game.h	/^	TPROP_WTILE_Y_SHIFT  = 8,$/;"	e	enum:__anon14
+TRANS_STATE_NORMAL	game.h	/^	TRANS_STATE_NORMAL = 0,$/;"	e	enum:__anon10
+TRANS_STATE_SCROLLING	game.h	/^	TRANS_STATE_SCROLLING,$/;"	e	enum:__anon10
+TRANS_STATE_WAITING	game.h	/^	TRANS_STATE_WAITING,$/;"	e	enum:__anon10
+TRANS_STATE_WARPING	game.h	/^	TRANS_STATE_WARPING$/;"	e	enum:__anon10
+TileMapParseState	tile_map.c	/^typedef struct TileMapParseState {$/;"	s	file:
+TileMapParseState	tile_map.c	/^} TileMapParseState;$/;"	t	typeref:struct:TileMapParseState	file:
+TileMask	game.h	/^} TileMask;$/;"	t	typeref:enum:__anon13
+TilePropMask	game.h	/^} TilePropMask;$/;"	t	typeref:enum:__anon14
+TransitionState	game.h	/^} TransitionState;$/;"	t	typeref:enum:__anon10
+UPDIR	game.h	/^typedef enum { NULLDIR, UPDIR, RIGHTDIR, DOWNDIR, LEFTDIR } Direction;$/;"	e	enum:__anon4
+Vec2	game.h	/^typedef struct Vec2 {$/;"	s
+Vec2	game.h	/^} Vec2;$/;"	t	typeref:struct:Vec2
+WIN_BORDER	game.h	26;"	d
+WIN_HEIGHT	game.h	25;"	d
+WIN_WIDTH	game.h	24;"	d
+WIN_X	game.h	22;"	d
+WIN_Y	game.h	23;"	d
+WorldState	game.h	/^} WorldState;$/;"	t	typeref:struct:__anon11
+X_DIMENSION	game.h	/^typedef enum { X_DIMENSION, Y_DIMENSION } CoordDimension;$/;"	e	enum:__anon3
+Y_DIMENSION	game.h	/^typedef enum { X_DIMENSION, Y_DIMENSION } CoordDimension;$/;"	e	enum:__anon3
+ai_counter	game.h	/^	i32 ai_counter;$/;"	m	struct:Entity
+ai_enemy_chase	ai.c	/^static void ai_enemy_chase(Entity *entity, WorldState *world_state,$/;"	f	file:
+ai_enemy_idle	ai.c	/^static void ai_enemy_idle(Entity *entity, WorldState *world_state,$/;"	f	file:
+ai_run_ai_system	ai.c	/^void ai_run_ai_system(Entities *entities, WorldState *world_state,$/;"	f
+ai_states	ai.c	/^static const AIState ai_states[] = {$/;"	v	file:
+alloc_func	game.h	/^	void *(*alloc_func)(struct Memory *, size_t);$/;"	m	struct:IntHashMap
+allocate_temp_storage	sdl_main.c	/^static StorageState allocate_temp_storage()$/;"	f	file:
+alpha_mask	game.h	/^	u32 alpha_mask;$/;"	m	struct:__anon1
+bits_per_pixel	game.h	/^	u16 bits_per_pixel;$/;"	m	struct:__anon1
+blue_mask	game.h	/^	u32 blue_mask;$/;"	m	struct:__anon1
+bottom_connection	game.h	/^	struct MapSegment *bottom_connection;$/;"	m	struct:MapSegment	typeref:struct:MapSegment::MapSegment
+check_and_prep_screen_transition	game.c	/^static void check_and_prep_screen_transition(WorldState *world_state,$/;"	f	file:
+colors_used	game.h	/^	u32 colors_used;$/;"	m	struct:__anon1
+compression_type	game.h	/^	u32 compression_type;$/;"	m	struct:__anon1
+current_ai_state	game.h	/^	AIStateIndex current_ai_state;$/;"	m	struct:Entity
+current_map_segment	game.h	/^	MapSegment *current_map_segment;$/;"	m	struct:__anon11
+data	game.h	/^	Entity data[MAX_SEGMENT_ENTITIES];$/;"	m	struct:Entities
+data	game.h	/^	IntPair *data;$/;"	m	struct:IntHashMap
+data	game.h	/^	char data[];$/;"	m	struct:__anon2
+debug_platform_load_asset	sdl_main.c	/^size_t debug_platform_load_asset(const char file_path[], void *memory_location,$/;"	f
+debug_platform_stream_audio	sdl_main.c	/^i32 debug_platform_stream_audio(const char file_path[], FileStream *stream,$/;"	f
+display_bitmap_tile	game.c	/^static void display_bitmap_tile(i32 *restrict image_buffer,$/;"	f	file:
+do_action	ai.c	/^	void (*do_action)(Entity *, WorldState *, PlayerState *);$/;"	m	struct:AIState	file:
+duration	ai.c	/^	i32 duration; \/* in turns *\/$/;"	m	struct:AIState	file:
+entities	game.h	/^	Entities entities;$/;"	m	struct:MapSegment
+err	sdl_main.c	/^	i32 err;$/;"	m	struct:StorageState	file:
+face_direction	game.h	/^	Direction face_direction;$/;"	m	struct:Entity
+fd	game.h	/^	FILE *fd;$/;"	m	struct:__anon17
+file_index	tile_map.c	/^	i32 file_index;$/;"	m	struct:TileMapParseState	file:
+file_size	game.h	/^	u32 file_size;$/;"	m	struct:__anon1
+filled_cells	game.h	/^	i32 filled_cells;$/;"	m	struct:IntHashMap
+game_initialize_memory	game.c	/^void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt)$/;"	f
+game_update_and_render	game.c	/^void game_update_and_render(Memory *memory, Input *input,$/;"	f
+green_mask	game.h	/^	u32 green_mask;$/;"	m	struct:__anon1
+handle_key_press	sdl_main.c	/^static void handle_key_press(SDL_Keycode code, Input *input)$/;"	f	file:
+handle_key_release	sdl_main.c	/^static void handle_key_release(SDL_Keycode code, Input *input)$/;"	f	file:
+handle_player_collision	game.c	/^static void handle_player_collision(WorldState *world_state,$/;"	f	file:
+handle_window_event	sdl_main.c	/^static void handle_window_event(SDL_Event *event)$/;"	f	file:
+hash__hash_function	hashmap.c	/^static u32 hash__hash_function(u32 input)$/;"	f	file:
+hash__key_has_lower_hash_int	hashmap.c	/^static bool hash__key_has_lower_hash_int(u32 key1, u32 key2, size_t length)$/;"	f	file:
+hash__keys_match_int	hashmap.c	/^static bool hash__keys_match_int(u32 key1, u32 key2) { return key1 == key2; }$/;"	f	file:
+hash__realloc_int	hashmap.c	/^static void hash__realloc_int()$/;"	f	file:
+hash_create_hash_int	hashmap.c	/^IntHashMap hash_create_hash_int(Memory *memory,$/;"	f
+hash_delete_int	hashmap.c	/^void hash_delete_int(IntHashMap *int_hash_map, u32 key)$/;"	f
+hash_get_int	hashmap.c	/^u64 hash_get_int(IntHashMap *int_hash_map, u32 key)$/;"	f
+hash_insert_int	hashmap.c	/^i32 hash_insert_int(IntHashMap *int_hash_map, u32 key, u64 value)$/;"	f
+height	game.h	/^	i32 height;$/;"	m	struct:__anon2
+horizontal_resolution	game.h	/^	i32 horizontal_resolution;$/;"	m	struct:__anon1
+hot_tile_push	game.c	/^static void hot_tile_push(ScreenState *screen_state, i32 tile_x, i32 tile_y)$/;"	f	file:
+hot_tiles	game.h	/^	i32 hot_tiles[SCREEN_HEIGHT_TILES * SCREEN_WIDTH_TILES];$/;"	m	struct:__anon15
+hot_tiles_length	game.h	/^	i32 hot_tiles_length;$/;"	m	struct:__anon15
+i16	sdl_main.c	/^typedef int16_t i16;$/;"	t	file:
+i32	sdl_main.c	/^typedef int32_t i32;$/;"	t	file:
+i64	sdl_main.c	/^typedef int64_t i64;$/;"	t	file:
+i8	sdl_main.c	/^typedef int8_t i8;$/;"	t	file:
+idle_ai_state	game.h	/^	AIStateIndex idle_ai_state;$/;"	m	struct:Entity
+image_buffer	game.h	/^	i32 *image_buffer;$/;"	m	struct:__anon15
+image_buffer_pitch	sdl_main.c	/^static const i32 image_buffer_pitch = WIN_WIDTH * 4;$/;"	v	file:
+image_buffer_size	sdl_main.c	/^static const i32 image_buffer_size  = WIN_WIDTH * WIN_HEIGHT * 4;$/;"	v	file:
+image_data_size	game.h	/^	u32 image_data_size;$/;"	m	struct:__anon1
+image_height	game.h	/^	i32 image_height;$/;"	m	struct:__anon1
+image_offset	game.h	/^	u32 image_offset;$/;"	m	struct:__anon1
+image_width	game.h	/^	i32 image_width;$/;"	m	struct:__anon1
+important_colors	game.h	/^	u32 important_colors;$/;"	m	struct:__anon1
+index	game.h	/^	i32 index;$/;"	m	struct:MapSegment
+info_header_size	game.h	/^	u32 info_header_size;$/;"	m	struct:__anon1
+is_initialized	game.h	/^	bool is_initialized;$/;"	m	struct:Memory
+key	game.h	/^	u32 key;$/;"	m	struct:IntPair
+keys	game.h	/^	i32 keys;$/;"	m	struct:__anon7
+left_connection	game.h	/^	struct MapSegment *left_connection;$/;"	m	struct:MapSegment	typeref:struct:MapSegment::MapSegment
+length	game.h	/^	i32 length;$/;"	m	struct:IntHashMap
+load_bitmap	game.c	/^static size_t load_bitmap(const char file_path[], void *load_location,$/;"	f	file:
+main	sdl_main.c	/^int main()$/;"	f
+map_segment	tile_map.c	/^	MapSegment *map_segment;$/;"	m	struct:TileMapParseState	file:
+map_segment_count	tile_map.c	/^	i32 map_segment_count;$/;"	m	struct:TileMapParseState	file:
+map_segments	game.h	/^	MapSegment map_segments[MAX_MAP_SEGMENTS];$/;"	m	struct:Memory
+mem__get_next_aligned_offset	memory.c	/^static size_t mem__get_next_aligned_offset(size_t start_offset,$/;"	f	file:
+mem_load_file_to_temp_storage	memory.c	/^void *mem_load_file_to_temp_storage(Memory *memory, const char file_path[],$/;"	f
+mem_reserve_temp_storage	memory.c	/^void *mem_reserve_temp_storage(Memory *memory, size_t size_bytes)$/;"	f
+memory	game.h	/^	struct Memory *memory;$/;"	m	struct:IntHashMap	typeref:struct:IntHashMap::Memory
+move_counter	game.h	/^	i32 move_counter;$/;"	m	struct:Entity
+move_counter	game.h	/^	i32 move_counter;$/;"	m	struct:__anon8
+move_direction	game.h	/^	Direction move_direction;$/;"	m	struct:__anon8
+move_player	game.c	/^static void move_player(WorldState *world_state, PlayerState *player_state,$/;"	f	file:
+next_map_segment	game.h	/^	MapSegment *next_map_segment;$/;"	m	struct:__anon11
+next_state	ai.c	/^	AIStateIndex next_state;$/;"	m	struct:AIState	file:
+num_entities	game.h	/^	i32 num_entities;$/;"	m	struct:Entities
+number_of_planes	game.h	/^	u16 number_of_planes;$/;"	m	struct:__anon1
+pixel_x	game.h	/^	i32 pixel_x;$/;"	m	struct:__anon8
+pixel_y	game.h	/^	i32 pixel_y;$/;"	m	struct:__anon8
+player_sprites	game.h	/^	char player_sprites[MAX_PLAYER_SPRITE_SIZE];$/;"	m	struct:__anon8
+player_state	game.h	/^	PlayerState player_state;$/;"	m	struct:Memory
+playing	game.h	/^	bool playing;$/;"	m	struct:__anon16
+position	game.h	/^	Vec2 position;$/;"	m	struct:Entity
+red_mask	game.h	/^	u32 red_mask;$/;"	m	struct:__anon1
+render_entities	game.c	/^static void render_entities(i32 *image_buffer, MapSegment *map_segment)$/;"	f	file:
+render_hot_tiles	game.c	/^static void render_hot_tiles(ScreenState *screen_state, WorldState *world_state)$/;"	f	file:
+render_map_segment	game.c	/^static void render_map_segment(i32 *image_buffer, MapSegment *map_segment,$/;"	f	file:
+render_player	game.c	/^static void render_player(i32 *image_buffer, PlayerState *player_state)$/;"	f	file:
+render_rectangle	game.c	/^static void render_rectangle(i32 *image_buffer, i32 min_x, i32 max_x, i32 min_y,$/;"	f	file:
+render_status_bar	game.c	/^static void render_status_bar(i32 *image_buffer)$/;"	f	file:
+reserved1	game.h	/^	u16 reserved1;$/;"	m	struct:__anon1
+reserved2	game.h	/^	u16 reserved2;$/;"	m	struct:__anon1
+right_connection	game.h	/^	struct MapSegment *right_connection;$/;"	m	struct:MapSegment	typeref:struct:MapSegment::MapSegment
+scroll_screens	game.c	/^static void scroll_screens(i32 *image_buffer, PlayerState *player_state,$/;"	f	file:
+signature	game.h	/^	u16 signature;$/;"	m	struct:__anon1
+sound_buffer	game.h	/^	void *sound_buffer;$/;"	m	struct:__anon16
+sound_buffer_size	game.h	/^	i32 sound_buffer_size;$/;"	m	struct:__anon16
+sprite_number	game.h	/^	i32 sprite_number;$/;"	m	struct:__anon8
+target_sound_buffer_size	sdl_main.c	/^static const i32 target_sound_buffer_size =$/;"	v	file:
+temp_next_load_offset	game.h	/^	size_t temp_next_load_offset;$/;"	m	struct:Memory
+temp_storage	game.h	/^	void *temp_storage;$/;"	m	struct:Memory
+temp_storage	sdl_main.c	/^	void *temp_storage;$/;"	m	struct:StorageState	file:
+temp_storage_size	game.h	/^	size_t temp_storage_size;$/;"	m	struct:Memory
+temp_storage_size	sdl_main.c	/^	size_t temp_storage_size;$/;"	m	struct:StorageState	file:
+tile_props	game.h	/^	IntHashMap tile_props;$/;"	m	struct:__anon11
+tile_props	tile_map.c	/^	IntHashMap *tile_props;$/;"	m	struct:TileMapParseState	file:
+tile_set	game.h	/^	void *tile_set;$/;"	m	struct:__anon11
+tile_x	game.h	/^	i32 tile_x;$/;"	m	struct:__anon8
+tile_y	game.h	/^	i32 tile_y;$/;"	m	struct:__anon8
+tiles	game.h	/^	i32 tiles[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];$/;"	m	struct:MapSegment
+tm__get_map_segment_count	tile_map.c	/^tm__get_map_segment_count(TileMapParseState parse_state, char *file_location)$/;"	f	file:
+tm__handle_map_segment_metadata	tile_map.c	/^tm__handle_map_segment_metadata(TileMapParseState parse_state, Memory *memory,$/;"	f	file:
+tm__read_map_segment_metadata	tile_map.c	/^tm__read_map_segment_metadata(TileMapParseState parse_state, Memory *memory,$/;"	f	file:
+tm__read_map_segment_tiles	tile_map.c	/^tm__read_map_segment_tiles(TileMapParseState parse_state, char *file_location)$/;"	f	file:
+tm__set_map_segment_value	tile_map.c	/^static void tm__set_map_segment_value(i32 x, i32 y, i32 layer, i32 tile_number,$/;"	f	file:
+tm_load_tile_map	tile_map.c	/^bool tm_load_tile_map(const char file_path[], Memory *memory)$/;"	f
+top_connection	game.h	/^	struct MapSegment *top_connection;$/;"	m	struct:MapSegment	typeref:struct:MapSegment::MapSegment
+trans_state	game.h	/^	TransitionState trans_state;$/;"	m	struct:__anon11
+transition_counter	game.h	/^	i32 transition_counter;$/;"	m	struct:__anon11
+transition_direction	game.h	/^	Direction transition_direction;$/;"	m	struct:__anon11
+turn_duration	game.h	/^	i32 turn_duration;$/;"	m	struct:__anon11
+u16	sdl_main.c	/^typedef uint16_t u16;$/;"	t	file:
+u32	sdl_main.c	/^typedef uint32_t u32;$/;"	t	file:
+u64	sdl_main.c	/^typedef uint64_t u64;$/;"	t	file:
+u8	sdl_main.c	/^typedef uint8_t u8;$/;"	t	file:
+util_bit_scan_forward_u	util.c	/^i32 util_bit_scan_forward_u(u32 number)$/;"	f
+util_compactify_three_u32	util.c	/^u32 util_compactify_three_u32(u32 a, u32 b, u32 c)$/;"	f
+util_convert_tile_to_pixel	util.c	/^i32 util_convert_tile_to_pixel(i32 tile_value, CoordDimension dimension)$/;"	f
+value	game.h	/^	u64 value;$/;"	m	struct:IntPair
+vertical_resolution	game.h	/^	i32 vertical_resolution;$/;"	m	struct:__anon1
+warp_to_screen	game.c	/^static void warp_to_screen(i32 *image_buffer, PlayerState *player_state,$/;"	f	file:
+width	game.h	/^	i32 width;$/;"	m	struct:__anon2
+world_state	game.h	/^	WorldState world_state;$/;"	m	struct:Memory
+x	game.h	/^	i32 x;$/;"	m	struct:Vec2
+y	game.h	/^	i32 y;$/;"	m	struct:Vec2
