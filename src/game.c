@@ -186,12 +186,13 @@ static void check_and_prep_screen_transition(WorldState *world_state,
 		i32 tile_x             = player_state->tile_x;
 		i32 tile_y             = player_state->tile_y;
 		IntHashMap *tile_props = &world_state->tile_props;
-		u32 key                = util_compactify_three_u32(
-                        segment_index, (u32)tile_x & 0xFF, (u32)tile_y & 0xFF);
+		u32 key = util_compactify_three_u32(segment_index, tile_x,
+						    tile_y);
 		u64 current_tile_props = hash_get_int(tile_props, key);
 
-		bool is_warp_tile = !!(current_tile_props & 0x02);
-		i32 warp_map      = (current_tile_props & 0xFF000000) >> 24;
+		bool is_warp_tile = !!(current_tile_props & TPROP_IS_WARP_TILE);
+		i32 warp_map      = (current_tile_props & TPROP_WARP_MAP) >>
+			TPROP_WARP_MAP_SHIFT;
 
 		if (is_warp_tile && warp_map < MAX_MAP_SEGMENTS &&
 		    world_state->trans_state != TRANS_STATE_WAITING) {

@@ -20,7 +20,7 @@
  */
 
 typedef struct AIState {
-	i32 duration; /* duration of state in turns */
+	i32 duration; /* in turns */
 	void (*do_action)(Entity *, WorldState *, PlayerState *);
 	AIStateIndex next_state;
 } AIState;
@@ -282,6 +282,12 @@ static void ai_enemy_idle(Entity *entity, WorldState *world_state,
 raycast_end:
 	if (player_visible) {
 		printf("%s\n", "player visible!");
+		if (player_is_below && face_direction != DOWNDIR) {
+			entity->face_direction = DOWNDIR;
+		} else if (player_is_above && face_direction != UPDIR) {
+			entity->face_direction = UPDIR;
+		}
+
 		entity->current_ai_state = AIST_ENEMY_CHASE;
 	}
 }

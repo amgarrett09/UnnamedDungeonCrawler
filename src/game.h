@@ -162,8 +162,12 @@ typedef struct {
 } WorldState;
 
 typedef enum {
-	TPROP_HAS_COLLISION = 0x01,
-	TPROP_ENTITY        = 0x000000FF00000000,
+	TPROP_HAS_COLLISION  = 0x01,
+	TPROP_IS_WARP_TILE   = 0x02,
+	TPROP_ENTITY         = 0xFF00000000,
+	TPROP_ENTITY_SHIFT   = 32,
+	TPROP_WARP_MAP       = 0xFF000000,
+	TPROP_WARP_MAP_SHIFT = 24,
 } TilePropMask;
 
 typedef struct Memory {

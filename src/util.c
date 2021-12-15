@@ -43,11 +43,11 @@ i32 util_bit_scan_forward_u(u32 number)
 	return index;
 }
 
-u32 util_compactify_three_u32(u16 a, u8 b, u8 c)
+u32 util_compactify_three_u32(u32 a, u32 b, u32 c)
 {
-	u32 out = (u32)a << 16;
-	out |= (u32)b << 8;
-	out |= (u32)c;
+	u32 out = (a & 0xFFFF) << 16;
+	out |= (b & 0xFF) << 8;
+	out |= c & 0xFF;
 
 	return out;
 }
