@@ -209,7 +209,6 @@ int main()
 			((i64)end.tv_nsec - (i64)start.tv_nsec);
 		sleeptime.tv_sec  = 0;
 		sleeptime.tv_nsec = frametime - delta;
-		printf("delta: %li\n", delta);
 
 		nanosleep(&sleeptime, NULL);
 		clock_gettime(CLOCK_REALTIME, &start);

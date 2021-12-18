@@ -608,8 +608,8 @@ static void render_map_segment(u32 *image_buffer, MapSegment *map_segment,
 	i32 *tiles = (i32 *)map_segment->tiles;
 	for (i32 row = 0; row < SCREEN_HEIGHT_TILES; row++) {
 		for (i32 column = 0; column < SCREEN_WIDTH_TILES; column++) {
-			u32 target_y = row * TILE_HEIGHT;
-			u32 target_x = column * TILE_WIDTH;
+			i32 target_y = row * TILE_HEIGHT;
+			i32 target_x = column * TILE_WIDTH;
 			u32 tile_data =
 				tiles[row * SCREEN_WIDTH_TILES + column];
 			u32 bg_tile_number =
