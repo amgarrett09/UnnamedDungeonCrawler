@@ -1,7 +1,8 @@
-Entity following behavior
 Entity sprites
 Hitpoints
 Attacks
 
 Resize hashmap when it gets too full
 Fix seg fault when there's an invalid tile number
+
+Lighting

@@ -342,6 +342,7 @@ static i32 astar_find_open_node(AStarNode open_nodes[MAX_ASTAR_NODES],
 static void ai_enemy_chase(Entity *entity, WorldState *world_state,
 			   PlayerState *player_state)
 {
+	/* TODO: update enemy collision */
 	if (entity->path_counter) {
 		i32 index = MAX_PATH_LENGTH - entity->path_counter;
 		if (index < entity->path_cache.length) {
@@ -372,7 +373,10 @@ static void ai_enemy_chase(Entity *entity, WorldState *world_state,
 	while (open_nodes_length > 0 && open_nodes_length < MAX_ASTAR_NODES) {
 		current_node  = open_nodes[0];
 		current_index = 0;
-		/* Find node with lowest fcost */
+		/* 
+		 * Find node with lowest fcost 
+		 * NOTE: If this is slow, we can change to a min-heap
+		 */
 		for (i32 i = 0; i < open_nodes_length; i++) {
 			i32 probing_node_fcost =
 				astar_compute_fcost(open_nodes[i]);
@@ -470,6 +474,7 @@ static void ai_enemy_chase(Entity *entity, WorldState *world_state,
 		}
 	}
 
+	/* Retrace path to start */
 	Vec2 path_positions[MAX_ASTAR_NODES] = {};
 	i32 path_position_length             = 0;
 
@@ -491,6 +496,7 @@ static void ai_enemy_chase(Entity *entity, WorldState *world_state,
 		parent                                 = parent_node.parent;
 	}
 
+	/* Store first several node positions with entity */
 	i32 j = 0;
 	for (i32 i = path_position_length - 1; i >= 0; i--) {
 		if (j >= MAX_PATH_LENGTH)
