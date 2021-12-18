@@ -55,9 +55,9 @@ i32 hash_insert_int(IntHashMap *int_hash_map, u32 key, u64 value)
 	if (!int_hash_map->data)
 		return -1;
 
-	i32 rc        = -1;
-	u32 x         = 0;
-	size_t length = int_hash_map->length;
+	i32 rc     = -1;
+	u32 x      = 0;
+	u32 length = int_hash_map->length;
 
 	u32 key_hash = hash__hash_function(key);
 
@@ -90,9 +90,9 @@ u64 hash_get_int(IntHashMap *int_hash_map, u32 key)
 	if (!int_hash_map->data)
 		return 0;
 
-	u64 result    = 0;
-	u32 x         = 0;
-	size_t length = int_hash_map->length;
+	u64 result = 0;
+	u32 x      = 0;
+	u32 length = int_hash_map->length;
 
 	u32 key_hash = hash__hash_function(key);
 
@@ -119,8 +119,8 @@ void hash_delete_int(IntHashMap *int_hash_map, u32 key)
 	if (!int_hash_map->data)
 		return;
 
-	u32 x         = 0;
-	size_t length = int_hash_map->length;
+	u32 x      = 0;
+	u32 length = int_hash_map->length;
 
 	u32 key_hash         = hash__hash_function(key);
 	u32 deleted_index    = 0;

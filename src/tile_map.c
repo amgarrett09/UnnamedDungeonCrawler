@@ -27,16 +27,18 @@ typedef struct TileMapParseState {
 } TileMapParseState;
 
 static TileMapParseState
-tm__get_map_segment_count(TileMapParseState parse_state, char *file_location);
+tm__get_map_segment_count(TileMapParseState parse_state,
+			  unsigned char *file_location);
 static TileMapParseState
 tm__handle_map_segment_metadata(TileMapParseState parse_state, Memory *memory,
 				i32 state, i32 map_segment_index);
 static TileMapParseState
 tm__read_map_segment_metadata(TileMapParseState parse_state, Memory *memory,
-			      char *file_location);
+			      unsigned char *file_location);
 static TileMapParseState
-tm__read_map_segment_tiles(TileMapParseState parse_state, char *file_location);
-static void tm__set_map_segment_value(i32 x, i32 y, i32 layer, i32 tile_number,
+tm__read_map_segment_tiles(TileMapParseState parse_state,
+			   unsigned char *file_location);
+static void tm__set_map_segment_value(u32 x, u32 y, u32 layer, u32 tile_number,
 				      MapSegment *map_segment,
 				      IntHashMap *tile_props);
 
@@ -68,12 +70,13 @@ i32 tm_load_tile_map(const char file_path[], Memory *memory)
 }
 
 static TileMapParseState
-tm__get_map_segment_count(TileMapParseState parse_state, char *file_location)
+tm__get_map_segment_count(TileMapParseState parse_state,
+			  unsigned char *file_location)
 {
 	i32 count = 0;
 
 	for (i32 i = 0; i < 128; i++) {
-		char c = file_location[parse_state.file_index];
+		unsigned char c = file_location[parse_state.file_index];
 		parse_state.file_index += 1;
 
 		if (c == '\n' || c == 0) {
@@ -129,12 +132,12 @@ tm__handle_map_segment_metadata(TileMapParseState parse_state, Memory *memory,
 
 static TileMapParseState
 tm__read_map_segment_metadata(TileMapParseState parse_state, Memory *memory,
-			      char *file_location)
+			      unsigned char *file_location)
 {
 	i32 state             = 0;
 	i32 map_segment_index = 0;
 	for (i32 i = 0; i < 128; i++) {
-		char c = file_location[parse_state.file_index];
+		unsigned char c = file_location[parse_state.file_index];
 		parse_state.file_index += 1;
 
 		if (c == '\n' || c == 0) {
@@ -167,14 +170,16 @@ tm__read_map_segment_metadata(TileMapParseState parse_state, Memory *memory,
 }
 
 static TileMapParseState
-tm__read_map_segment_tiles(TileMapParseState parse_state, char *file_location)
+tm__read_map_segment_tiles(TileMapParseState parse_state,
+			   unsigned char *file_location)
 {
-	for (i32 y = 0; y < SCREEN_HEIGHT_TILES; y++) {
-		for (i32 x = 0; x < SCREEN_WIDTH_TILES; x++) {
-			i32 tile_number = 0;
-			i32 layer       = 0;
+	for (u32 y = 0; y < SCREEN_HEIGHT_TILES; y++) {
+		for (u32 x = 0; x < SCREEN_WIDTH_TILES; x++) {
+			u32 tile_number = 0;
+			u32 layer       = 0;
 			for (i32 j = 0; j < 128; j++) {
-				char c = file_location[parse_state.file_index];
+				unsigned char c =
+					file_location[parse_state.file_index];
 				parse_state.file_index += 1;
 
 				if (c == '\n' || c == 0) {
@@ -202,7 +207,7 @@ tm__read_map_segment_tiles(TileMapParseState parse_state, char *file_location)
 	return parse_state;
 }
 
-static void tm__set_map_segment_value(i32 x, i32 y, i32 layer, i32 tile_number,
+static void tm__set_map_segment_value(u32 x, u32 y, u32 layer, u32 tile_number,
 				      MapSegment *map_segment,
 				      IntHashMap *tile_props)
 {
@@ -218,7 +223,7 @@ static void tm__set_map_segment_value(i32 x, i32 y, i32 layer, i32 tile_number,
 	}
 	case 2: {
 		i32 segment_index = map_segment->index;
-		u32 key = util_compactify_three_u32(segment_index, x, y);
+		u32 key = util_compactify_three_u32((u32)segment_index, x, y);
 
 		hash_insert_int(tile_props, key, (u32)tile_number);
 		break;

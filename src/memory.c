@@ -35,7 +35,8 @@ void *mem_load_file_to_temp_storage(Memory *memory, const char file_path[],
 	if (max_size <= 0)
 		return NULL;
 
-	size_t result = func(file_path, (void *)load_location, max_size);
+	size_t result =
+		func(file_path, (void *)load_location, (size_t)max_size);
 
 	if (!result)
 		return NULL;

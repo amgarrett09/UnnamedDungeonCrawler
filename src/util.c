@@ -19,10 +19,7 @@
  * Dependencies: game.h
  */
 
-i32 util_abs(i32 input)
-{
-	return input < 0 ? input * -1 : input;
-}
+i32 util_abs(i32 input) { return input < 0 ? input * -1 : input; }
 
 /*
  * Finds first set bit in an unsigned integer, starting from lowest bit.

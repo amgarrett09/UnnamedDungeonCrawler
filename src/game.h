@@ -79,7 +79,7 @@ typedef enum {
 	KEYMASK_UP    = 0x01,
 	KEYMASK_RIGHT = 0x02,
 	KEYMASK_DOWN  = 0x04,
-	KEYMASK_LEFT  = 0x08
+	KEYMASK_LEFT  = 0x08,
 } KeyMask;
 
 typedef struct {
@@ -152,8 +152,8 @@ typedef struct IntPair {
 } IntPair;
 
 typedef struct IntHashMap {
-	i32 filled_cells;
-	i32 length;
+	u32 filled_cells;
+	u32 length;
 	IntPair *data;
 	struct Memory *memory;
 	void *(*alloc_func)(struct Memory *, size_t);

@@ -117,8 +117,9 @@ static void ai_enemy_idle(Entity *entity, WorldState *world_state,
 			i32 test_tile_x = player_is_right ? ent_tile_x + i
 							  : ent_tile_x - i;
 
-			u32 key = util_compactify_three_u32(
-				segment_index, test_tile_x, ent_tile_y);
+			u32 key = util_compactify_three_u32((u32)segment_index,
+							    (u32)test_tile_x,
+							    (u32)ent_tile_y);
 			u64 props = hash_get_int(tile_props, key);
 			if (props & TPROP_HAS_COLLISION ||
 			    props & TPROP_ENTITY) {
@@ -141,8 +142,9 @@ static void ai_enemy_idle(Entity *entity, WorldState *world_state,
 			i32 test_tile_y = player_is_below ? ent_tile_y + i
 							  : ent_tile_y - i;
 
-			u32 key = util_compactify_three_u32(
-				segment_index, ent_tile_x, test_tile_y);
+			u32 key = util_compactify_three_u32((u32)segment_index,
+							    (u32)ent_tile_x,
+							    (u32)test_tile_y);
 			u64 props = hash_get_int(tile_props, key);
 
 			if (props & TPROP_HAS_COLLISION ||
@@ -176,16 +178,16 @@ static void ai_enemy_idle(Entity *entity, WorldState *world_state,
 			TILE_HEIGHT;
 	}
 
-	i32 test_point_x =
-		ent_pixel_x + (ent_pixel_y - (float)test_point_y) / angle_tan;
+	i32 test_point_x = (i32)(
+		ent_pixel_x + (ent_pixel_y - (float)test_point_y) / angle_tan);
 
 	i32 test_tile_x = test_point_x / TILE_WIDTH;
 	i32 test_tile_y = test_point_y / TILE_HEIGHT;
 
 	bool should_loop = true;
 	while (should_loop) {
-		u32 key = util_compactify_three_u32(segment_index, test_tile_x,
-						    test_tile_y);
+		u32 key = util_compactify_three_u32(
+			(u32)segment_index, (u32)test_tile_x, (u32)test_tile_y);
 		u64 props = hash_get_int(tile_props, key);
 		if (props & TPROP_HAS_COLLISION || props & TPROP_ENTITY) {
 			player_visible = false;
@@ -237,16 +239,16 @@ static void ai_enemy_idle(Entity *entity, WorldState *world_state,
 			(i32)(ent_pixel_x / (float)TILE_WIDTH) * TILE_WIDTH - 1;
 	}
 
-	test_point_y =
-		ent_pixel_y + (ent_pixel_x - (float)test_point_x) * angle_tan;
+	test_point_y = (i32)(ent_pixel_y +
+			     (ent_pixel_x - (float)test_point_x) * angle_tan);
 
 	test_tile_x = test_point_x / TILE_WIDTH;
 	test_tile_y = test_point_y / TILE_HEIGHT;
 
 	should_loop = true;
 	while (should_loop) {
-		u32 key = util_compactify_three_u32(segment_index, test_tile_x,
-						    test_tile_y);
+		u32 key = util_compactify_three_u32(
+			(u32)segment_index, (u32)test_tile_x, (u32)test_tile_y);
 		u64 props = hash_get_int(tile_props, key);
 		if (props & TPROP_HAS_COLLISION || props & TPROP_ENTITY) {
 			player_visible = false;
@@ -392,8 +394,8 @@ static void ai_enemy_chase(Entity *entity, WorldState *world_state,
 		}
 
 		/* Remove current node from open and add to closed */
-		u32 key = util_compactify_two_u32(current_node.position.x,
-						  current_node.position.y);
+		u32 key = util_compactify_two_u32((u32)current_node.position.x,
+						  (u32)current_node.position.y);
 		hash_insert_astar(&closed_nodes, key, current_node);
 		open_nodes_length = astar_delete_open_node(
 			open_nodes, current_index, open_nodes_length);
@@ -416,7 +418,8 @@ static void ai_enemy_chase(Entity *entity, WorldState *world_state,
 			i32 map_segment_index =
 				world_state->current_map_segment->index;
 			u32 tprop_key = util_compactify_three_u32(
-				map_segment_index, neighbor.x, neighbor.y);
+				(u32)map_segment_index, (u32)neighbor.x,
+				(u32)neighbor.y);
 			u64 tile_props = hash_get_int(&world_state->tile_props,
 						      tprop_key);
 			/* If neighbor not traversable, skip */
@@ -425,8 +428,8 @@ static void ai_enemy_chase(Entity *entity, WorldState *world_state,
 				continue;
 			}
 
-			u32 closed_key =
-				util_compactify_two_u32(neighbor.x, neighbor.y);
+			u32 closed_key = util_compactify_two_u32(
+				(u32)neighbor.x, (u32)neighbor.y);
 			AStarNode closed_node =
 				hash_get_astar(&closed_nodes, closed_key);
 
@@ -486,7 +489,7 @@ static void ai_enemy_chase(Entity *entity, WorldState *world_state,
 			break;
 		}
 
-		u32 key = util_compactify_two_u32(parent.x, parent.y);
+		u32 key = util_compactify_two_u32((u32)parent.x, (u32)parent.y);
 		AStarNode parent_node = hash_get_astar(&closed_nodes, key);
 
 		if (parent_node.position.x < 0)

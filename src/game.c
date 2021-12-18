@@ -38,7 +38,7 @@ static void move_entities(Entities *entities, ScreenState *screen_state);
 static void handle_player_collision(WorldState *world_state,
 				    PlayerState *player_state, Input *input,
 				    ScreenState *screen_state);
-static void hot_tile_push(ScreenState *screen_state, i32 tile_x, i32 tile_y);
+static void hot_tile_push(ScreenState *screen_state, u32 tile_x, u32 tile_y);
 static void render_entities(u32 *image_buffer, MapSegment *map_segment);
 static void render_hot_tiles(ScreenState *screen_state,
 			     WorldState *world_state);
@@ -81,8 +81,9 @@ void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt)
 		entities->data[entities->num_entities++].face_direction =
 			RIGHTDIR;
 
-		u32 key   = util_compactify_three_u32(0, test_entity_position.x,
-                                                    test_entity_position.y);
+		u32 key = util_compactify_three_u32(
+			0, (u32)test_entity_position.x,
+			(u32)test_entity_position.y);
 		u64 value = (u64)1 << 32;
 
 		hash_insert_int(&world_state->tile_props, key, value);
@@ -188,8 +189,8 @@ static void check_and_prep_screen_transition(WorldState *world_state,
 		i32 tile_x             = player_state->tile_x;
 		i32 tile_y             = player_state->tile_y;
 		IntHashMap *tile_props = &world_state->tile_props;
-		u32 key = util_compactify_three_u32(segment_index, tile_x,
-						    tile_y);
+		u32 key = util_compactify_three_u32((u32)segment_index,
+						    (u32)tile_x, (u32)tile_y);
 		u64 current_tile_props = hash_get_int(tile_props, key);
 
 		bool is_warp_tile = !!(current_tile_props & TPROP_IS_WARP_TILE);
@@ -222,7 +223,7 @@ static void display_bitmap_tile(u32 *restrict image_buffer,
 	i32 source_y =
 		(bmp_tile_number / (bmp_width / tile_width)) * tile_height;
 
-	i32 *image = (i32 *)bmp->data;
+	u32 *image = (u32 *)bmp->data;
 
 	/* BMP pixels are arranged bottom to top so start at bottom */
 	i32 bmp_row_start = (bmp_height - 1) * bmp_width;
@@ -264,8 +265,8 @@ static void display_bitmap_tile(u32 *restrict image_buffer,
 			i32 target_pixel =
 				target_row * WIN_WIDTH + target_column;
 
-			i32 bmp_color    = image[source_pixel];
-			i32 buffer_color = image_buffer[target_pixel];
+			u32 bmp_color    = image[source_pixel];
+			u32 buffer_color = image_buffer[target_pixel];
 
 			/* Linear Alpha Blend bmp with existing data in buffer*/
 			u32 alpha     = (bmp_color & 0xff000000) >> 24;
@@ -303,7 +304,7 @@ static void handle_player_collision(WorldState *world_state,
 	i32 segment_index      = world_state->current_map_segment->index;
 	IntHashMap *tile_props = &world_state->tile_props;
 
-	i32 keys = input->keys;
+	u32 keys = input->keys;
 
 	if (keys & KEYMASK_UP || keys & KEYMASK_DOWN) {
 		bool is_up     = !(keys & KEYMASK_DOWN);
@@ -331,8 +332,8 @@ static void handle_player_collision(WorldState *world_state,
 			player_state->tile_y       = new_tile_y;
 			player_state->move_counter = TILE_HEIGHT;
 		} else {
-			hot_tile_push(screen_state, player_state->tile_x,
-				      player_state->tile_y);
+			hot_tile_push(screen_state, (u32)player_state->tile_x,
+				      (u32)player_state->tile_y);
 		}
 
 		world_state->trans_state = TRANS_STATE_NORMAL;
@@ -362,15 +363,15 @@ static void handle_player_collision(WorldState *world_state,
 			player_state->tile_x       = new_tile_x;
 			player_state->move_counter = TILE_WIDTH;
 		} else {
-			hot_tile_push(screen_state, player_state->tile_x,
-				      player_state->tile_y);
+			hot_tile_push(screen_state, (u32)player_state->tile_x,
+				      (u32)player_state->tile_y);
 		}
 
 		world_state->trans_state = TRANS_STATE_NORMAL;
 	}
 }
 
-static void hot_tile_push(ScreenState *screen_state, i32 tile_x, i32 tile_y)
+static void hot_tile_push(ScreenState *screen_state, u32 tile_x, u32 tile_y)
 {
 	if (tile_x < 0 || tile_y < 0 || tile_x >= SCREEN_WIDTH_TILES ||
 	    tile_y >= SCREEN_HEIGHT_TILES)
@@ -408,26 +409,26 @@ static size_t load_bitmap(const char file_path[], void *load_location,
 	bmp->width                = image_width;
 	bmp->height               = image_height;
 
-	memcpy(bmp->data, image_data, image_width * image_height * 4);
+	memcpy(bmp->data, image_data, (size_t)(image_width * image_height * 4));
 
 	/*
 	 * For swizzling:
 	 * How many bits we need to shift to get values to start at bit 0
 	 */
-	u32 red_shift   = util_bit_scan_forward_u(red_mask);
-	u32 green_shift = util_bit_scan_forward_u(green_mask);
-	u32 blue_shift  = util_bit_scan_forward_u(blue_mask);
-	u32 alpha_shift = util_bit_scan_forward_u(alpha_mask);
+	u32 red_shift   = (u32)util_bit_scan_forward_u(red_mask);
+	u32 green_shift = (u32)util_bit_scan_forward_u(green_mask);
+	u32 blue_shift  = (u32)util_bit_scan_forward_u(blue_mask);
+	u32 alpha_shift = (u32)util_bit_scan_forward_u(alpha_mask);
 
 	red_shift   = red_shift < 0 ? 0 : red_shift;
 	green_shift = green_shift < 0 ? 0 : green_shift;
 	blue_shift  = blue_shift < 0 ? 0 : blue_shift;
 	alpha_shift = alpha_shift < 0 ? 0 : alpha_shift;
 
-	i32 *image = (i32 *)bmp->data;
+	u32 *image = (u32 *)bmp->data;
 
 	for (i32 i = 0; i < image_width * image_height; i++) {
-		i32 color = image[i];
+		u32 color = image[i];
 
 		/* Swizzle color values to ensure ARGB order */
 		u32 alpha = (((color & alpha_mask) >> alpha_shift) & 0xFF)
@@ -439,7 +440,8 @@ static size_t load_bitmap(const char file_path[], void *load_location,
 		image[i] = alpha | red | green | blue;
 	}
 
-	size_t bitmap_size = image_width * image_height * 4 + sizeof(Bitmap);
+	size_t bitmap_size =
+		(size_t)(image_width * image_height * 4) + sizeof(Bitmap);
 
 	return bitmap_size;
 }
@@ -449,34 +451,34 @@ static void move_player(WorldState *world_state, PlayerState *player_state,
 {
 	switch (player_state->move_direction) {
 	case UPDIR:
-		hot_tile_push(screen_state, player_state->tile_x,
-			      player_state->tile_y + 1);
-		hot_tile_push(screen_state, player_state->tile_x,
-			      player_state->tile_y);
+		hot_tile_push(screen_state, (u32)player_state->tile_x,
+			      (u32)(player_state->tile_y + 1));
+		hot_tile_push(screen_state, (u32)player_state->tile_x,
+			      (u32)player_state->tile_y);
 		player_state->pixel_y -=
 			TILE_HEIGHT / world_state->turn_duration;
 		break;
 	case RIGHTDIR:
-		hot_tile_push(screen_state, player_state->tile_x - 1,
-			      player_state->tile_y);
-		hot_tile_push(screen_state, player_state->tile_x,
-			      player_state->tile_y);
+		hot_tile_push(screen_state, (u32)(player_state->tile_x - 1),
+			      (u32)player_state->tile_y);
+		hot_tile_push(screen_state, (u32)player_state->tile_x,
+			      (u32)player_state->tile_y);
 		player_state->pixel_x +=
 			TILE_WIDTH / world_state->turn_duration;
 		break;
 	case DOWNDIR:
-		hot_tile_push(screen_state, player_state->tile_x,
-			      player_state->tile_y - 1);
-		hot_tile_push(screen_state, player_state->tile_x,
-			      player_state->tile_y);
+		hot_tile_push(screen_state, (u32)player_state->tile_x,
+			      (u32)(player_state->tile_y - 1));
+		hot_tile_push(screen_state, (u32)player_state->tile_x,
+			      (u32)player_state->tile_y);
 		player_state->pixel_y +=
 			TILE_HEIGHT / world_state->turn_duration;
 		break;
 	case LEFTDIR:
-		hot_tile_push(screen_state, player_state->tile_x + 1,
-			      player_state->tile_y);
-		hot_tile_push(screen_state, player_state->tile_x,
-			      player_state->tile_y);
+		hot_tile_push(screen_state, (u32)(player_state->tile_x + 1),
+			      (u32)player_state->tile_y);
+		hot_tile_push(screen_state, (u32)player_state->tile_x,
+			      (u32)player_state->tile_y);
 		player_state->pixel_x -=
 			TILE_WIDTH / world_state->turn_duration;
 		break;
@@ -496,14 +498,14 @@ static void move_entities(Entities *entities, ScreenState *screen_state)
 	for (i32 i = 0; i < entities->num_entities; i++) {
 		Entity *ent = &entities->data[i];
 		if (ent->current_ai_state == AIST_ENEMY_CHASE) {
-			hot_tile_push(screen_state, ent->position.x,
-				      ent->position.y - 1);
-			hot_tile_push(screen_state, ent->position.x,
-				      ent->position.y + 1);
-			hot_tile_push(screen_state, ent->position.x - 1,
-				      ent->position.y);
-			hot_tile_push(screen_state, ent->position.x + 1,
-				      ent->position.y);
+			hot_tile_push(screen_state, (u32)ent->position.x,
+				      (u32)(ent->position.y - 1));
+			hot_tile_push(screen_state, (u32)ent->position.x,
+				      (u32)(ent->position.y + 1));
+			hot_tile_push(screen_state, (u32)(ent->position.x - 1),
+				      (u32)ent->position.y);
+			hot_tile_push(screen_state, (u32)(ent->position.x + 1),
+				      (u32)ent->position.y);
 		}
 	}
 }
@@ -548,12 +550,14 @@ static void render_hot_tiles(ScreenState *screen_state, WorldState *world_state)
 		u32 fg_tile_number = tile_data & TM_FG_TILE;
 
 		display_bitmap_tile(image_buffer, world_state->tile_set,
-				    bg_tile_number, target_x, target_y,
-				    TILE_WIDTH, TILE_HEIGHT, false);
+				    (i32)bg_tile_number, (i32)target_x,
+				    (i32)target_y, TILE_WIDTH, TILE_HEIGHT,
+				    false);
 		if (fg_tile_number) {
 			display_bitmap_tile(image_buffer, world_state->tile_set,
-					    fg_tile_number, target_x, target_y,
-					    TILE_WIDTH, TILE_HEIGHT, false);
+					    (i32)fg_tile_number, (i32)target_x,
+					    (i32)target_y, TILE_WIDTH,
+					    TILE_HEIGHT, false);
 		}
 	}
 
@@ -581,9 +585,9 @@ static void render_rectangle(u32 *image_buffer, i32 min_x, i32 max_x, i32 min_y,
 	i32 clamped_max_x = max_x > WIN_WIDTH ? WIN_WIDTH : max_x;
 	i32 clamped_max_y = max_y > WIN_HEIGHT ? WIN_HEIGHT : max_y;
 
-	i32 int_red   = (i32)(red * 255.0f);
-	i32 int_green = (i32)(green * 255.0f);
-	i32 int_blue  = (i32)(blue * 255.0f);
+	u32 int_red   = (u32)(red * 255.0f);
+	u32 int_green = (u32)(green * 255.0f);
+	u32 int_blue  = (u32)(blue * 255.0f);
 
 	u32 color = (int_red << 16) | (int_green << 8) | int_blue;
 
@@ -605,7 +609,7 @@ static void render_map_segment(u32 *image_buffer, MapSegment *map_segment,
 	if (!tile_set | !map_segment | !image_buffer)
 		return;
 
-	i32 *tiles = (i32 *)map_segment->tiles;
+	u32 *tiles = (u32 *)map_segment->tiles;
 	for (i32 row = 0; row < SCREEN_HEIGHT_TILES; row++) {
 		for (i32 column = 0; column < SCREEN_WIDTH_TILES; column++) {
 			i32 target_y = row * TILE_HEIGHT;
@@ -617,14 +621,16 @@ static void render_map_segment(u32 *image_buffer, MapSegment *map_segment,
 			u32 fg_tile_number = tile_data & TM_FG_TILE;
 
 			display_bitmap_tile(image_buffer, tile_set,
-					    bg_tile_number, target_x + x_offset,
-					    target_y + y_offset, TILE_WIDTH,
-					    TILE_HEIGHT, false);
+					    (i32)bg_tile_number,
+					    (i32)target_x + x_offset,
+					    (i32)target_y + y_offset,
+					    TILE_WIDTH, TILE_HEIGHT, false);
 
 			display_bitmap_tile(image_buffer, tile_set,
-					    fg_tile_number, target_x + x_offset,
-					    target_y + y_offset, TILE_WIDTH,
-					    TILE_HEIGHT, false);
+					    (i32)fg_tile_number,
+					    (i32)target_x + x_offset,
+					    (i32)target_y + y_offset,
+					    TILE_WIDTH, TILE_HEIGHT, false);
 		}
 	}
 }
@@ -739,10 +745,10 @@ static void warp_to_screen(u32 *image_buffer, PlayerState *player_state,
 	i32 tile_x             = player_state->tile_x;
 	i32 tile_y             = player_state->tile_y;
 	IntHashMap *tile_props = &world_state->tile_props;
-	u32 key = util_compactify_three_u32(segment_index, (u32)tile_x & 0xFF,
-					    (u32)tile_y & 0xFF);
+	u32 key                = util_compactify_three_u32(
+                (u32)segment_index, (u32)tile_x & 0xFF, (u32)tile_y & 0xFF);
 
-	u32 current_tile_props = hash_get_int(tile_props, key);
+	u64 current_tile_props = hash_get_int(tile_props, key);
 	player_state->tile_x =
 		(current_tile_props & TPROP_WTILE_X) >> TPROP_WTILE_X_SHIFT;
 	player_state->tile_y =

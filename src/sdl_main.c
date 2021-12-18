@@ -264,8 +264,8 @@ i32 debug_platform_stream_audio(const char file_path[], FileStream *stream,
 	i32 bytes_to_write = target_size - (i32)queued_size;
 
 	if (bytes_to_write > 0) {
-		size_t result =
-			fread(sound_buffer, 1, bytes_to_write, stream->fd);
+		size_t result = fread(sound_buffer, 1, (size_t)bytes_to_write,
+				      stream->fd);
 
 		if ((i32)result != bytes_to_write) {
 			fclose(stream->fd);
@@ -273,7 +273,7 @@ i32 debug_platform_stream_audio(const char file_path[], FileStream *stream,
 			return 0;
 		}
 
-		SDL_QueueAudio(1, sound_buffer, bytes_to_write);
+		SDL_QueueAudio(1, sound_buffer, (u32)bytes_to_write);
 
 		return (i32)result;
 	}
@@ -292,7 +292,7 @@ size_t debug_platform_load_asset(const char file_path[], void *memory_location,
 	}
 
 	fseek(file, 0, SEEK_END);
-	size_t file_size = ftell(file);
+	size_t file_size = (size_t)ftell(file);
 
 	if (file_size > max_size) {
 		return 0;
@@ -327,8 +327,8 @@ static void handle_window_event(SDL_Event *event)
 
 static StorageState allocate_temp_storage()
 {
-	StorageState storage        = {0};
-	i32 temp_storage_size_bytes = 5 * 1024 * 1024;
+	StorageState storage           = {0};
+	size_t temp_storage_size_bytes = 5 * 1024 * 1024;
 	assert(temp_storage_size_bytes % 64 == 0);
 	storage.temp_storage = aligned_alloc(64, temp_storage_size_bytes);
 	if (!storage.temp_storage) {
@@ -368,16 +368,16 @@ static void handle_key_release(SDL_Keycode code, Input *input)
 {
 	switch (code) {
 	case SDLK_UP:
-		input->keys &= ~KEYMASK_UP;
+		input->keys &= ~((u32)KEYMASK_UP);
 		break;
 	case SDLK_RIGHT:
-		input->keys &= ~KEYMASK_RIGHT;
+		input->keys &= ~((u32)KEYMASK_RIGHT);
 		break;
 	case SDLK_DOWN:
-		input->keys &= ~KEYMASK_DOWN;
+		input->keys &= ~((u32)KEYMASK_DOWN);
 		break;
 	case SDLK_LEFT:
-		input->keys &= ~KEYMASK_LEFT;
+		input->keys &= ~((u32)KEYMASK_LEFT);
 		break;
 	default:
 		break;
