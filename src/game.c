@@ -26,7 +26,7 @@ static const i32 SCREEN_WIDTH_PIXELS  = SCREEN_WIDTH_TILES * TILE_WIDTH;
 static void check_and_prep_screen_transition(WorldState *world_state,
 					     PlayerState *player_state,
 					     MapSegment *map_segments);
-static void display_bitmap_tile(i32 *image_buffer, Bitmap *bmp, i32 tile_number,
+static void display_bitmap_tile(u32 *image_buffer, Bitmap *bmp, i32 tile_number,
 				i32 target_x, i32 target_y, i32 tile_width,
 				i32 tile_height, bool mirrored);
 
@@ -39,18 +39,18 @@ static void handle_player_collision(WorldState *world_state,
 				    PlayerState *player_state, Input *input,
 				    ScreenState *screen_state);
 static void hot_tile_push(ScreenState *screen_state, i32 tile_x, i32 tile_y);
-static void render_entities(i32 *image_buffer, MapSegment *map_segment);
+static void render_entities(u32 *image_buffer, MapSegment *map_segment);
 static void render_hot_tiles(ScreenState *screen_state,
 			     WorldState *world_state);
-static void render_player(i32 *image_buffer, PlayerState *player_state);
-static void render_rectangle(i32 *image_buffer, i32 min_x, i32 max_x, i32 min_y,
+static void render_player(u32 *image_buffer, PlayerState *player_state);
+static void render_rectangle(u32 *image_buffer, i32 min_x, i32 max_x, i32 min_y,
 			     i32 max_y, float red, float green, float blue);
-static void render_status_bar(i32 *image_buffer);
-static void render_map_segment(i32 *image_buffer, MapSegment *map_segment,
+static void render_status_bar(u32 *image_buffer);
+static void render_map_segment(u32 *image_buffer, MapSegment *map_segment,
 			       void *tile_set, i32 x_offset, i32 y_offset);
-static void scroll_screens(i32 *image_buffer, PlayerState *player_state,
+static void scroll_screens(u32 *image_buffer, PlayerState *player_state,
 			   WorldState *world_state);
-static void warp_to_screen(i32 *image_buffer, PlayerState *player_state,
+static void warp_to_screen(u32 *image_buffer, PlayerState *player_state,
 			   WorldState *world_state);
 
 void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt)
@@ -67,10 +67,10 @@ void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt)
 	world_state->tile_props =
 		hash_create_hash_int(memory, mem_reserve_temp_storage);
 
-	bool tile_map_loaded =
+	i32 tile_map_rc =
 		tm_load_tile_map("resources/maps/test_tilemap.tm", memory);
 
-	if (tile_map_loaded) {
+	if (tile_map_rc == 0) {
 		world_state->current_map_segment = &memory->map_segments[0];
 		Vec2 test_entity_position        = {.x = 10, .y = 5};
 
@@ -110,7 +110,7 @@ void game_update_and_render(Memory *memory, Input *input,
 {
 	PlayerState *player_state = &memory->player_state;
 	WorldState *world_state   = &memory->world_state;
-	i32 *image_buffer         = screen_state->image_buffer;
+	u32 *image_buffer         = screen_state->image_buffer;
 
 	if (world_state->trans_state == TRANS_STATE_SCROLLING) {
 		scroll_screens(image_buffer, player_state, world_state);
@@ -193,7 +193,7 @@ static void check_and_prep_screen_transition(WorldState *world_state,
 		u64 current_tile_props = hash_get_int(tile_props, key);
 
 		bool is_warp_tile = !!(current_tile_props & TPROP_IS_WARP_TILE);
-		i32 warp_map      = (current_tile_props & TPROP_WARP_MAP) >>
+		u32 warp_map      = (current_tile_props & TPROP_WARP_MAP) >>
 			TPROP_WARP_MAP_SHIFT;
 
 		if (is_warp_tile && warp_map < MAX_MAP_SEGMENTS &&
@@ -205,7 +205,7 @@ static void check_and_prep_screen_transition(WorldState *world_state,
 	}
 }
 
-static void display_bitmap_tile(i32 *restrict image_buffer,
+static void display_bitmap_tile(u32 *restrict image_buffer,
 				Bitmap *restrict bmp, i32 tile_number,
 				i32 target_x, i32 target_y, i32 tile_width,
 				i32 tile_height, bool mirrored)
@@ -268,16 +268,16 @@ static void display_bitmap_tile(i32 *restrict image_buffer,
 			i32 buffer_color = image_buffer[target_pixel];
 
 			/* Linear Alpha Blend bmp with existing data in buffer*/
-			i32 alpha     = (bmp_color & 0xff000000) >> 24;
+			u32 alpha     = (bmp_color & 0xff000000) >> 24;
 			float opacity = alpha / 255.0f;
 
-			i32 bmp_red   = (bmp_color & 0x00ff0000) >> 16;
-			i32 bmp_green = (bmp_color & 0x0000ff00) >> 8;
-			i32 bmp_blue  = (bmp_color & 0x000000ff);
+			u32 bmp_red   = (bmp_color & 0x00ff0000) >> 16;
+			u32 bmp_green = (bmp_color & 0x0000ff00) >> 8;
+			u32 bmp_blue  = (bmp_color & 0x000000ff);
 
-			i32 buffer_red   = (buffer_color & 0x00ff0000) >> 16;
-			i32 buffer_green = (buffer_color & 0x0000ff00) >> 8;
-			i32 buffer_blue  = (buffer_color & 0x000000ff);
+			u32 buffer_red   = (buffer_color & 0x00ff0000) >> 16;
+			u32 buffer_green = (buffer_color & 0x0000ff00) >> 8;
+			u32 buffer_blue  = (buffer_color & 0x000000ff);
 
 			float new_red = ((1 - opacity) * buffer_red) +
 				(opacity * bmp_red);
@@ -286,8 +286,8 @@ static void display_bitmap_tile(i32 *restrict image_buffer,
 			float new_blue = ((1 - opacity) * buffer_blue) +
 				(opacity * bmp_blue);
 
-			i32 new_color = ((i32)new_red << 16) |
-				((i32)new_green << 8) | (i32)new_blue;
+			u32 new_color = ((u32)new_red << 16) |
+				((u32)new_green << 8) | (u32)new_blue;
 
 			image_buffer[target_pixel] = new_color;
 		}
@@ -376,7 +376,7 @@ static void hot_tile_push(ScreenState *screen_state, i32 tile_x, i32 tile_y)
 	    tile_y >= SCREEN_HEIGHT_TILES)
 		return;
 
-	i32 value = ((tile_x & 0xFFFF) << 16) | (tile_y & 0xFFFF);
+	u32 value = ((tile_x & 0xFFFF) << 16) | (tile_y & 0xFFFF);
 
 	screen_state->hot_tiles[screen_state->hot_tiles_length++] = value;
 }
@@ -414,10 +414,10 @@ static size_t load_bitmap(const char file_path[], void *load_location,
 	 * For swizzling:
 	 * How many bits we need to shift to get values to start at bit 0
 	 */
-	i32 red_shift   = util_bit_scan_forward_u(red_mask);
-	i32 green_shift = util_bit_scan_forward_u(green_mask);
-	i32 blue_shift  = util_bit_scan_forward_u(blue_mask);
-	i32 alpha_shift = util_bit_scan_forward_u(alpha_mask);
+	u32 red_shift   = util_bit_scan_forward_u(red_mask);
+	u32 green_shift = util_bit_scan_forward_u(green_mask);
+	u32 blue_shift  = util_bit_scan_forward_u(blue_mask);
+	u32 alpha_shift = util_bit_scan_forward_u(alpha_mask);
 
 	red_shift   = red_shift < 0 ? 0 : red_shift;
 	green_shift = green_shift < 0 ? 0 : green_shift;
@@ -430,11 +430,11 @@ static size_t load_bitmap(const char file_path[], void *load_location,
 		i32 color = image[i];
 
 		/* Swizzle color values to ensure ARGB order */
-		i32 alpha = (((color & alpha_mask) >> alpha_shift) & 0xFF)
+		u32 alpha = (((color & alpha_mask) >> alpha_shift) & 0xFF)
 			<< 24;
-		i32 red   = (((color & red_mask) >> red_shift) & 0xFF) << 16;
-		i32 green = (((color & green_mask) >> green_shift) & 0xFF) << 8;
-		i32 blue  = (((color & blue_mask) >> blue_shift) & 0xFF);
+		u32 red   = (((color & red_mask) >> red_shift) & 0xFF) << 16;
+		u32 green = (((color & green_mask) >> green_shift) & 0xFF) << 8;
+		u32 blue  = (((color & blue_mask) >> blue_shift) & 0xFF);
 
 		image[i] = alpha | red | green | blue;
 	}
@@ -487,6 +487,10 @@ static void move_player(WorldState *world_state, PlayerState *player_state,
 	player_state->move_counter -= TILE_WIDTH / world_state->turn_duration;
 }
 
+/*
+ * TODO: need a better method of determining which tiles are hot / make
+ * sure we don't push the same tiles to the hot list more than once
+ * */
 static void move_entities(Entities *entities, ScreenState *screen_state)
 {
 	for (i32 i = 0; i < entities->num_entities; i++) {
@@ -504,7 +508,7 @@ static void move_entities(Entities *entities, ScreenState *screen_state)
 	}
 }
 
-static void render_entities(i32 *image_buffer, MapSegment *map_segment)
+static void render_entities(u32 *image_buffer, MapSegment *map_segment)
 {
 	Entities *entities = &map_segment->entities;
 	i32 num_entities   = entities->num_entities;
@@ -522,26 +526,26 @@ static void render_entities(i32 *image_buffer, MapSegment *map_segment)
 
 static void render_hot_tiles(ScreenState *screen_state, WorldState *world_state)
 {
-	i32 *tiles           = (i32 *)world_state->current_map_segment->tiles;
-	i32 *hot_tiles       = screen_state->hot_tiles;
+	u32 *tiles           = (u32 *)world_state->current_map_segment->tiles;
+	u32 *hot_tiles       = screen_state->hot_tiles;
 	i32 hot_tiles_length = screen_state->hot_tiles_length;
-	i32 *image_buffer    = screen_state->image_buffer;
+	u32 *image_buffer    = screen_state->image_buffer;
 
 	if (!hot_tiles_length)
 		return;
 
 	for (i32 i = 0; i < hot_tiles_length; i++) {
-		i32 data   = hot_tiles[i];
-		i32 tile_x = (data & HT_TILE_X) >> HT_TILE_X_SHIFT;
-		i32 tile_y = data & HT_TILE_Y;
+		u32 data   = hot_tiles[i];
+		u32 tile_x = (data & HT_TILE_X) >> HT_TILE_X_SHIFT;
+		u32 tile_y = data & HT_TILE_Y;
 
-		i32 tile_data = tiles[tile_y * SCREEN_WIDTH_TILES + tile_x];
-		i32 target_y  = tile_y * TILE_HEIGHT;
-		i32 target_x  = tile_x * TILE_WIDTH;
+		u32 tile_data = tiles[tile_y * SCREEN_WIDTH_TILES + tile_x];
+		u32 target_y  = tile_y * TILE_HEIGHT;
+		u32 target_x  = tile_x * TILE_WIDTH;
 
-		i32 bg_tile_number =
+		u32 bg_tile_number =
 			(tile_data & TM_BG_TILE) >> TM_BG_TILE_SHIFT;
-		i32 fg_tile_number = tile_data & TM_FG_TILE;
+		u32 fg_tile_number = tile_data & TM_FG_TILE;
 
 		display_bitmap_tile(image_buffer, world_state->tile_set,
 				    bg_tile_number, target_x, target_y,
@@ -556,7 +560,7 @@ static void render_hot_tiles(ScreenState *screen_state, WorldState *world_state)
 	screen_state->hot_tiles_length = 0;
 }
 
-static void render_player(i32 *image_buffer, PlayerState *player_state)
+static void render_player(u32 *image_buffer, PlayerState *player_state)
 {
 	i32 player_min_x = player_state->pixel_x - 16;
 	i32 player_min_y = player_state->pixel_y - 16;
@@ -569,7 +573,7 @@ static void render_player(i32 *image_buffer, PlayerState *player_state)
 			    TILE_WIDTH, TILE_HEIGHT, mirrored);
 }
 
-static void render_rectangle(i32 *image_buffer, i32 min_x, i32 max_x, i32 min_y,
+static void render_rectangle(u32 *image_buffer, i32 min_x, i32 max_x, i32 min_y,
 			     i32 max_y, float red, float green, float blue)
 {
 	i32 clamped_min_x = min_x >= 0 ? min_x : 0;
@@ -581,21 +585,21 @@ static void render_rectangle(i32 *image_buffer, i32 min_x, i32 max_x, i32 min_y,
 	i32 int_green = (i32)(green * 255.0f);
 	i32 int_blue  = (i32)(blue * 255.0f);
 
-	i32 color = (int_red << 16) | (int_green << 8) | int_blue;
+	u32 color = (int_red << 16) | (int_green << 8) | int_blue;
 
 	for (int y = clamped_min_y; y < clamped_max_y; y++) {
 		for (int x = clamped_min_x; x < clamped_max_x; x++) {
 			image_buffer[y * WIN_WIDTH + x] = color;
 		}
 	}
-};
+}
 
-static void render_status_bar(i32 *image_buffer)
+static void render_status_bar(u32 *image_buffer)
 {
 	render_rectangle(image_buffer, 0, 1280, 640, 720, 1.0f, 0.0f, 1.0f);
 }
 
-static void render_map_segment(i32 *image_buffer, MapSegment *map_segment,
+static void render_map_segment(u32 *image_buffer, MapSegment *map_segment,
 			       void *tile_set, i32 x_offset, i32 y_offset)
 {
 	if (!tile_set | !map_segment | !image_buffer)
@@ -604,13 +608,13 @@ static void render_map_segment(i32 *image_buffer, MapSegment *map_segment,
 	i32 *tiles = (i32 *)map_segment->tiles;
 	for (i32 row = 0; row < SCREEN_HEIGHT_TILES; row++) {
 		for (i32 column = 0; column < SCREEN_WIDTH_TILES; column++) {
-			i32 target_y = row * TILE_HEIGHT;
-			i32 target_x = column * TILE_WIDTH;
-			i32 tile_data =
+			u32 target_y = row * TILE_HEIGHT;
+			u32 target_x = column * TILE_WIDTH;
+			u32 tile_data =
 				tiles[row * SCREEN_WIDTH_TILES + column];
-			i32 bg_tile_number =
+			u32 bg_tile_number =
 				(tile_data & TM_BG_TILE) >> TM_BG_TILE_SHIFT;
-			i32 fg_tile_number = tile_data & TM_FG_TILE;
+			u32 fg_tile_number = tile_data & TM_FG_TILE;
 
 			display_bitmap_tile(image_buffer, tile_set,
 					    bg_tile_number, target_x + x_offset,
@@ -629,7 +633,7 @@ static void render_map_segment(i32 *image_buffer, MapSegment *map_segment,
  * TODO: May want to implement scrolling in the platform layer and then draw
  * in only part of the screen each frame, instead of redrawing all of it
  */
-static void scroll_screens(i32 *image_buffer, PlayerState *player_state,
+static void scroll_screens(u32 *image_buffer, PlayerState *player_state,
 			   WorldState *world_state)
 {
 	Direction transition_direction = world_state->transition_direction;
@@ -728,7 +732,7 @@ static void scroll_screens(i32 *image_buffer, PlayerState *player_state,
 	render_status_bar(image_buffer);
 }
 
-static void warp_to_screen(i32 *image_buffer, PlayerState *player_state,
+static void warp_to_screen(u32 *image_buffer, PlayerState *player_state,
 			   WorldState *world_state)
 {
 	i32 segment_index      = world_state->current_map_segment->index;

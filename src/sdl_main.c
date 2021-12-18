@@ -64,8 +64,8 @@ int main()
 	SDL_Texture *texture   = NULL;
 	int ret                = 0;
 
-	static Memory game_memory       = {};
-	static ScreenState screen_state = {};
+	static Memory game_memory       = {0};
+	static ScreenState screen_state = {{0}, NULL, 0};
 	i32 dt                          = 16;
 
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
@@ -101,7 +101,7 @@ int main()
 		goto cleanup;
 	}
 
-	screen_state.image_buffer = (i32 *)malloc(image_buffer_size);
+	screen_state.image_buffer = (u32 *)malloc(image_buffer_size);
 
 	if (!screen_state.image_buffer) {
 		SDL_Log("%s", "Failed to allocate image buffer");
@@ -121,7 +121,7 @@ int main()
 	game_memory.temp_next_load_offset = 0;
 	game_memory.is_initialized        = false;
 
-	Sound sound             = {};
+	Sound sound             = {0};
 	sound.sound_buffer      = malloc(target_sound_buffer_size);
 	sound.sound_buffer_size = target_sound_buffer_size;
 
@@ -144,8 +144,8 @@ int main()
 		goto cleanup;
 	}
 
-	Input input       = {};
-	FileStream stream = {};
+	Input input       = {0};
+	FileStream stream = {0};
 
 	/* Setup timespecs to enforce a set framerate in main loop */
 	i64 frametime = 16666667;
@@ -209,6 +209,7 @@ int main()
 			((i64)end.tv_nsec - (i64)start.tv_nsec);
 		sleeptime.tv_sec  = 0;
 		sleeptime.tv_nsec = frametime - delta;
+		printf("delta: %li\n", delta);
 
 		nanosleep(&sleeptime, NULL);
 		clock_gettime(CLOCK_REALTIME, &start);
@@ -327,7 +328,7 @@ static void handle_window_event(SDL_Event *event)
 
 static StorageState allocate_temp_storage()
 {
-	StorageState storage        = {};
+	StorageState storage        = {0};
 	i32 temp_storage_size_bytes = 5 * 1024 * 1024;
 	assert(temp_storage_size_bytes % 64 == 0);
 	storage.temp_storage = aligned_alloc(64, temp_storage_size_bytes);

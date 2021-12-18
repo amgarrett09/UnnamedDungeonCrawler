@@ -355,8 +355,8 @@ static void ai_enemy_chase(Entity *entity, WorldState *world_state,
 	Vec2 player_pos = {.x = player_state->tile_x,
 			   .y = player_state->tile_y};
 
-	AStarNode open_nodes[MAX_ASTAR_NODES] = {};
-	AStarHashMap closed_nodes             = {};
+	AStarNode open_nodes[MAX_ASTAR_NODES] = {0};
+	AStarHashMap closed_nodes             = {.data = {{0}}};
 	i32 open_nodes_length                 = 0;
 
 	open_nodes[open_nodes_length].position.x = ent_pos.x;
@@ -373,8 +373,8 @@ static void ai_enemy_chase(Entity *entity, WorldState *world_state,
 	while (open_nodes_length > 0 && open_nodes_length < MAX_ASTAR_NODES) {
 		current_node  = open_nodes[0];
 		current_index = 0;
-		/* 
-		 * Find node with lowest fcost 
+		/*
+		 * Find node with lowest fcost
 		 * NOTE: If this is slow, we can change to a min-heap
 		 */
 		for (i32 i = 0; i < open_nodes_length; i++) {
@@ -475,7 +475,7 @@ static void ai_enemy_chase(Entity *entity, WorldState *world_state,
 	}
 
 	/* Retrace path to start */
-	Vec2 path_positions[MAX_ASTAR_NODES] = {};
+	Vec2 path_positions[MAX_ASTAR_NODES] = {0};
 	i32 path_position_length             = 0;
 
 	path_positions[path_position_length++] = current_node.position;

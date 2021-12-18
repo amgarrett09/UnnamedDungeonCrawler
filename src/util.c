@@ -21,10 +21,7 @@
 
 i32 util_abs(i32 input)
 {
-	i32 mask = input >> 31;
-	i32 out  = input ^ mask;
-
-	return out - mask;
+	return input < 0 ? input * -1 : input;
 }
 
 /*

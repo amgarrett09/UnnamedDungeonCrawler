@@ -83,7 +83,7 @@ typedef enum {
 } KeyMask;
 
 typedef struct {
-	i32 keys;
+	u32 keys;
 } Input;
 
 typedef struct {
@@ -135,7 +135,7 @@ typedef struct MapSegment {
 	struct MapSegment *bottom_connection;
 	struct MapSegment *left_connection;
 	/* Format for tiles: (bg_tile_num << 16) | fg_tile_num */
-	i32 tiles[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
+	u32 tiles[SCREEN_HEIGHT_TILES][SCREEN_WIDTH_TILES];
 	Entities entities;
 } MapSegment;
 
@@ -177,30 +177,27 @@ typedef struct {
 	IntHashMap tile_props;
 } WorldState;
 
-typedef enum {
-	HT_TILE_X       = 0xFFFF0000,
-	HT_TILE_X_SHIFT = 16,
-	HT_TILE_Y       = 0xFFFF,
-} HotTileMask;
+/* Hot tile masks */
+#define HT_TILE_X 0xFFFF0000
+#define HT_TILE_X_SHIFT 16
+#define HT_TILE_Y 0xFFFF
 
-typedef enum {
-	TM_BG_TILE       = 0xFFFF0000,
-	TM_BG_TILE_SHIFT = 16,
-	TM_FG_TILE       = 0xFFFF,
-} TileMask;
+/* Normal tile masks */
+#define TM_BG_TILE 0xFFFF0000
+#define TM_BG_TILE_SHIFT 16
+#define TM_FG_TILE 0xFFFF
 
-typedef enum {
-	TPROP_HAS_COLLISION  = 0x01,
-	TPROP_IS_WARP_TILE   = 0x02,
-	TPROP_ENTITY         = 0xFF00000000,
-	TPROP_ENTITY_SHIFT   = 32,
-	TPROP_WARP_MAP       = 0xFF000000,
-	TPROP_WARP_MAP_SHIFT = 24,
-	TPROP_WTILE_X        = 0xFF0000,
-	TPROP_WTILE_X_SHIFT  = 16,
-	TPROP_WTILE_Y        = 0xFF00,
-	TPROP_WTILE_Y_SHIFT  = 8,
-} TilePropMask;
+/* Tile property masks */
+#define TPROP_HAS_COLLISION 0x01
+#define TPROP_IS_WARP_TILE 0x02
+#define TPROP_ENTITY 0xFF00000000
+#define TPROP_ENTITY_SHIFT 32
+#define TPROP_WARP_MAP 0xFF000000
+#define TPROP_WARP_MAP_SHIFT 24
+#define TPROP_WTILE_X 0xFF0000
+#define TPROP_WTILE_X_SHIFT 16
+#define TPROP_WTILE_Y 0xFF00
+#define TPROP_WTILE_Y_SHIFT 8
 
 typedef struct Memory {
 	PlayerState player_state;
@@ -214,8 +211,8 @@ typedef struct Memory {
 
 typedef struct {
 	/* Format for hot_tiles: (tile_x << 16) | tile_y */
-	i32 hot_tiles[SCREEN_HEIGHT_TILES * SCREEN_WIDTH_TILES];
-	i32 *image_buffer;
+	u32 hot_tiles[SCREEN_HEIGHT_TILES * SCREEN_WIDTH_TILES];
+	u32 *image_buffer;
 	i32 hot_tiles_length;
 } ScreenState;
 

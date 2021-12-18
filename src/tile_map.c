@@ -40,13 +40,13 @@ static void tm__set_map_segment_value(i32 x, i32 y, i32 layer, i32 tile_number,
 				      MapSegment *map_segment,
 				      IntHashMap *tile_props);
 
-bool tm_load_tile_map(const char file_path[], Memory *memory)
+i32 tm_load_tile_map(const char file_path[], Memory *memory)
 {
 	void *temp_location = mem_load_file_to_temp_storage(
 		memory, file_path, &debug_platform_load_asset, true);
 
 	if (!temp_location)
-		return false;
+		return -1;
 
 	TileMapParseState parse_state = {
 		.map_segment       = &memory->map_segments[0],
@@ -64,7 +64,7 @@ bool tm_load_tile_map(const char file_path[], Memory *memory)
 			tm__read_map_segment_tiles(parse_state, temp_location);
 	}
 
-	return true;
+	return 0;
 }
 
 static TileMapParseState

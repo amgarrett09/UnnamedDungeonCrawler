@@ -39,7 +39,7 @@ static void hash__realloc_int();
 IntHashMap hash_create_hash_int(Memory *memory,
 				void *(*alloc_func)(Memory *, size_t))
 {
-	IntHashMap map = {};
+	IntHashMap map = {0};
 
 	map.data       = (IntPair *)alloc_func(memory,
                                          HASHMAP_INIT_SIZE * sizeof(IntPair));
@@ -124,7 +124,7 @@ void hash_delete_int(IntHashMap *int_hash_map, u32 key)
 
 	u32 key_hash         = hash__hash_function(key);
 	u32 deleted_index    = 0;
-	IntPair deleted_data = {};
+	IntPair deleted_data = {0};
 	bool deleted         = false;
 
 	while (x < length) {
@@ -217,7 +217,7 @@ void hash_delete_astar(AStarHashMap *map, u32 key)
 
 	u32 key_hash           = hash__hash_function(key);
 	u32 deleted_index      = 0;
-	AStarPair deleted_data = {};
+	AStarPair deleted_data = {0};
 	bool deleted           = false;
 
 	while (x < length) {
