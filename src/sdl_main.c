@@ -34,8 +34,8 @@ typedef uint32_t u32;
 typedef uint64_t u64;
 
 #include "game.h"
-#include "hashmap.c"
 #include "util.c"
+#include "hashmap.c"
 #include "ai.c"
 #include "memory.c"
 #include "tile_map.c"
@@ -328,7 +328,7 @@ static void handle_window_event(SDL_Event *event)
 static StorageState allocate_temp_storage()
 {
 	StorageState storage        = {};
-	i32 temp_storage_size_bytes = 40 * 1024 * 1024;
+	i32 temp_storage_size_bytes = 5 * 1024 * 1024;
 	assert(temp_storage_size_bytes % 64 == 0);
 	storage.temp_storage = aligned_alloc(64, temp_storage_size_bytes);
 	if (!storage.temp_storage) {

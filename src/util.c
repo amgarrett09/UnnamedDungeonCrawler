@@ -19,6 +19,14 @@
  * Dependencies: game.h
  */
 
+i32 util_abs(i32 input)
+{
+	i32 mask = input >> 31;
+	i32 out  = input ^ mask;
+
+	return out - mask;
+}
+
 /*
  * Finds first set bit in an unsigned integer, starting from lowest bit.
  * Returns the index of the set bit.
@@ -48,6 +56,14 @@ u32 util_compactify_three_u32(u32 a, u32 b, u32 c)
 	u32 out = (a & 0xFFFF) << 16;
 	out |= (b & 0xFF) << 8;
 	out |= c & 0xFF;
+
+	return out;
+}
+
+u32 util_compactify_two_u32(u32 a, u32 b)
+{
+	u32 out = (a & 0xFFFF) << 16;
+	out |= b & 0xFFFF;
 
 	return out;
 }

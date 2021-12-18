@@ -20,6 +20,16 @@
  */
 
 #define HASHMAP_INIT_SIZE 4096
+#define ASTAR_MAP_LENGTH 256
+
+typedef struct AStarPair {
+	u32 key;
+	AStarNode node;
+} AStarPair;
+
+typedef struct AStarHashMap {
+	struct AStarPair data[ASTAR_MAP_LENGTH];
+} AStarHashMap;
 
 static u32 hash__hash_function(u32 input);
 static bool hash__keys_match_int(u32 key1, u32 key2);
@@ -141,6 +151,94 @@ void hash_delete_int(IntHashMap *int_hash_map, u32 key)
 			int_hash_map->data[index].value   = 0;
 			deleted_index                     = index;
 			deleted_data                      = stored_data;
+		}
+
+		x++;
+	}
+}
+
+i32 hash_insert_astar(AStarHashMap *map, u32 key, AStarNode node)
+{
+	i32 rc     = -1;
+	u32 x      = 0;
+	u32 length = ASTAR_MAP_LENGTH;
+
+	u32 key_hash = hash__hash_function(key);
+
+	while (x < length) {
+		u32 index             = (key_hash + x) & (length - 1);
+		AStarPair stored_data = map->data[index];
+
+		if (!stored_data.key ||
+		    hash__keys_match_int(stored_data.key, key)) {
+			AStarPair data_to_store = {.key = key, .node = node};
+
+			map->data[index] = data_to_store;
+			rc               = 0;
+			break;
+		}
+
+		x++;
+	}
+
+	return rc;
+}
+
+AStarNode hash_get_astar(AStarHashMap *map, u32 key)
+{
+	AStarNode result = {.position = {-1, -1}};
+	u32 x            = 0;
+	u32 length       = ASTAR_MAP_LENGTH;
+
+	u32 key_hash = hash__hash_function(key);
+
+	while (x < length) {
+		u32 index             = (key_hash + x) & (length - 1);
+		AStarPair stored_data = map->data[index];
+
+		if (!stored_data.key) {
+			break;
+		} else if (stored_data.key &&
+			   hash__keys_match_int(stored_data.key, key)) {
+			result = stored_data.node;
+			break;
+		}
+
+		x++;
+	}
+
+	return result;
+}
+
+void hash_delete_astar(AStarHashMap *map, u32 key)
+{
+	u32 x         = 0;
+	size_t length = ASTAR_MAP_LENGTH;
+
+	u32 key_hash           = hash__hash_function(key);
+	u32 deleted_index      = 0;
+	AStarPair deleted_data = {};
+	bool deleted           = false;
+
+	while (x < length) {
+		u32 index             = (key_hash + x) & (length - 1);
+		AStarPair stored_data = map->data[index];
+
+		if (!stored_data.key) {
+			break;
+		} else if (stored_data.key &&
+			   hash__keys_match_int(stored_data.key, key)) {
+			map->data[index].key = 0;
+			deleted_index        = index;
+			deleted_data         = stored_data;
+			deleted              = true;
+		} else if (deleted && stored_data.key &&
+			   hash__key_has_lower_hash_int(
+				   stored_data.key, deleted_data.key, length)) {
+			map->data[deleted_index] = stored_data;
+			map->data[index].key     = 0;
+			deleted_index            = index;
+			deleted_data             = stored_data;
 		}
 
 		x++;

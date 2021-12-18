@@ -9,6 +9,13 @@ AIST_ENEMY_IDLE	game.h	/^	AIST_ENEMY_IDLE,$/;"	e	enum:__anon9
 AIState	ai.c	/^typedef struct AIState {$/;"	s	file:
 AIState	ai.c	/^} AIState;$/;"	t	typeref:struct:AIState	file:
 AIStateIndex	game.h	/^} AIStateIndex;$/;"	t	typeref:enum:__anon9
+ASTAR_MAP_LENGTH	hashmap.c	23;"	d	file:
+AStarHashMap	hashmap.c	/^typedef struct AStarHashMap {$/;"	s	file:
+AStarHashMap	hashmap.c	/^} AStarHashMap;$/;"	t	typeref:struct:AStarHashMap	file:
+AStarNode	game.h	/^typedef struct AStarNode {$/;"	s
+AStarNode	game.h	/^} AStarNode;$/;"	t	typeref:struct:AStarNode
+AStarPair	hashmap.c	/^typedef struct AStarPair {$/;"	s	file:
+AStarPair	hashmap.c	/^} AStarPair;$/;"	t	typeref:struct:AStarPair	file:
 BMPHeader	game.h	/^} BMPHeader;$/;"	t	typeref:struct:__anon1
 BYTES_PER_SAMPLE	game.h	33;"	d
 Bitmap	game.h	/^} Bitmap;$/;"	t	typeref:struct:__anon2
@@ -42,7 +49,9 @@ KEY_UP	game.h	/^typedef enum { KEY_NULL, KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT }
 Key	game.h	/^typedef enum { KEY_NULL, KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT } Key;$/;"	t	typeref:enum:__anon5
 KeyMask	game.h	/^} KeyMask;$/;"	t	typeref:enum:__anon6
 LEFTDIR	game.h	/^typedef enum { NULLDIR, UPDIR, RIGHTDIR, DOWNDIR, LEFTDIR } Direction;$/;"	e	enum:__anon4
+MAX_ASTAR_NODES	ai.c	22;"	d	file:
 MAX_MAP_SEGMENTS	game.h	31;"	d
+MAX_PATH_LENGTH	game.h	37;"	d
 MAX_PLAYER_SPRITE_SIZE	game.h	35;"	d
 MAX_SEGMENT_ENTITIES	game.h	36;"	d
 MapSegment	game.h	/^typedef struct MapSegment {$/;"	s
@@ -50,6 +59,8 @@ MapSegment	game.h	/^} MapSegment;$/;"	t	typeref:struct:MapSegment
 Memory	game.h	/^typedef struct Memory {$/;"	s
 Memory	game.h	/^} Memory;$/;"	t	typeref:struct:Memory
 NULLDIR	game.h	/^typedef enum { NULLDIR, UPDIR, RIGHTDIR, DOWNDIR, LEFTDIR } Direction;$/;"	e	enum:__anon4
+PathCache	game.h	/^typedef struct PathCache {$/;"	s
+PathCache	game.h	/^} PathCache;$/;"	t	typeref:struct:PathCache
 PlayerState	game.h	/^} PlayerState;$/;"	t	typeref:struct:__anon8
 RIGHTDIR	game.h	/^typedef enum { NULLDIR, UPDIR, RIGHTDIR, DOWNDIR, LEFTDIR } Direction;$/;"	e	enum:__anon4
 SAMPLES_PER_SECOND	game.h	32;"	d
@@ -105,6 +116,10 @@ ai_states	ai.c	/^static const AIState ai_states[] = {$/;"	v	file:
 alloc_func	game.h	/^	void *(*alloc_func)(struct Memory *, size_t);$/;"	m	struct:IntHashMap
 allocate_temp_storage	sdl_main.c	/^static StorageState allocate_temp_storage()$/;"	f	file:
 alpha_mask	game.h	/^	u32 alpha_mask;$/;"	m	struct:__anon1
+astar_compute_distance	ai.c	/^static i32 astar_compute_distance(Vec2 pos1, Vec2 pos2)$/;"	f	file:
+astar_compute_fcost	ai.c	/^static i32 astar_compute_fcost(AStarNode node)$/;"	f	file:
+astar_delete_open_node	ai.c	/^static i32 astar_delete_open_node(AStarNode open_nodes[MAX_ASTAR_NODES],$/;"	f	file:
+astar_find_open_node	ai.c	/^static i32 astar_find_open_node(AStarNode open_nodes[MAX_ASTAR_NODES],$/;"	f	file:
 bits_per_pixel	game.h	/^	u16 bits_per_pixel;$/;"	m	struct:__anon1
 blue_mask	game.h	/^	u32 blue_mask;$/;"	m	struct:__anon1
 bottom_connection	game.h	/^	struct MapSegment *bottom_connection;$/;"	m	struct:MapSegment	typeref:struct:MapSegment::MapSegment
@@ -115,7 +130,9 @@ current_ai_state	game.h	/^	AIStateIndex current_ai_state;$/;"	m	struct:Entity
 current_map_segment	game.h	/^	MapSegment *current_map_segment;$/;"	m	struct:__anon11
 data	game.h	/^	Entity data[MAX_SEGMENT_ENTITIES];$/;"	m	struct:Entities
 data	game.h	/^	IntPair *data;$/;"	m	struct:IntHashMap
+data	game.h	/^	Vec2 data[MAX_PATH_LENGTH];$/;"	m	struct:PathCache
 data	game.h	/^	char data[];$/;"	m	struct:__anon2
+data	hashmap.c	/^	struct AStarPair data[ASTAR_MAP_LENGTH];$/;"	m	struct:AStarHashMap	typeref:struct:AStarHashMap::AStarPair	file:
 debug_platform_load_asset	sdl_main.c	/^size_t debug_platform_load_asset(const char file_path[], void *memory_location,$/;"	f
 debug_platform_stream_audio	sdl_main.c	/^i32 debug_platform_stream_audio(const char file_path[], FileStream *stream,$/;"	f
 display_bitmap_tile	game.c	/^static void display_bitmap_tile(i32 *restrict image_buffer,$/;"	f	file:
@@ -128,9 +145,11 @@ fd	game.h	/^	FILE *fd;$/;"	m	struct:__anon17
 file_index	tile_map.c	/^	i32 file_index;$/;"	m	struct:TileMapParseState	file:
 file_size	game.h	/^	u32 file_size;$/;"	m	struct:__anon1
 filled_cells	game.h	/^	i32 filled_cells;$/;"	m	struct:IntHashMap
+g_cost	game.h	/^	i32 g_cost;$/;"	m	struct:AStarNode
 game_initialize_memory	game.c	/^void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt)$/;"	f
 game_update_and_render	game.c	/^void game_update_and_render(Memory *memory, Input *input,$/;"	f
 green_mask	game.h	/^	u32 green_mask;$/;"	m	struct:__anon1
+h_cost	game.h	/^	i32 h_cost;$/;"	m	struct:AStarNode
 handle_key_press	sdl_main.c	/^static void handle_key_press(SDL_Keycode code, Input *input)$/;"	f	file:
 handle_key_release	sdl_main.c	/^static void handle_key_release(SDL_Keycode code, Input *input)$/;"	f	file:
 handle_player_collision	game.c	/^static void handle_player_collision(WorldState *world_state,$/;"	f	file:
@@ -140,8 +159,11 @@ hash__key_has_lower_hash_int	hashmap.c	/^static bool hash__key_has_lower_hash_in
 hash__keys_match_int	hashmap.c	/^static bool hash__keys_match_int(u32 key1, u32 key2) { return key1 == key2; }$/;"	f	file:
 hash__realloc_int	hashmap.c	/^static void hash__realloc_int()$/;"	f	file:
 hash_create_hash_int	hashmap.c	/^IntHashMap hash_create_hash_int(Memory *memory,$/;"	f
+hash_delete_astar	hashmap.c	/^void hash_delete_astar(AStarHashMap *map, u32 key)$/;"	f
 hash_delete_int	hashmap.c	/^void hash_delete_int(IntHashMap *int_hash_map, u32 key)$/;"	f
+hash_get_astar	hashmap.c	/^AStarNode hash_get_astar(AStarHashMap *map, u32 key)$/;"	f
 hash_get_int	hashmap.c	/^u64 hash_get_int(IntHashMap *int_hash_map, u32 key)$/;"	f
+hash_insert_astar	hashmap.c	/^i32 hash_insert_astar(AStarHashMap *map, u32 key, AStarNode node)$/;"	f
 hash_insert_int	hashmap.c	/^i32 hash_insert_int(IntHashMap *int_hash_map, u32 key, u64 value)$/;"	f
 height	game.h	/^	i32 height;$/;"	m	struct:__anon2
 horizontal_resolution	game.h	/^	i32 horizontal_resolution;$/;"	m	struct:__anon1
@@ -165,9 +187,11 @@ index	game.h	/^	i32 index;$/;"	m	struct:MapSegment
 info_header_size	game.h	/^	u32 info_header_size;$/;"	m	struct:__anon1
 is_initialized	game.h	/^	bool is_initialized;$/;"	m	struct:Memory
 key	game.h	/^	u32 key;$/;"	m	struct:IntPair
+key	hashmap.c	/^	u32 key;$/;"	m	struct:AStarPair	file:
 keys	game.h	/^	i32 keys;$/;"	m	struct:__anon7
 left_connection	game.h	/^	struct MapSegment *left_connection;$/;"	m	struct:MapSegment	typeref:struct:MapSegment::MapSegment
 length	game.h	/^	i32 length;$/;"	m	struct:IntHashMap
+length	game.h	/^	i32 length;$/;"	m	struct:PathCache
 load_bitmap	game.c	/^static size_t load_bitmap(const char file_path[], void *load_location,$/;"	f	file:
 main	sdl_main.c	/^int main()$/;"	f
 map_segment	tile_map.c	/^	MapSegment *map_segment;$/;"	m	struct:TileMapParseState	file:
@@ -180,16 +204,22 @@ memory	game.h	/^	struct Memory *memory;$/;"	m	struct:IntHashMap	typeref:struct:I
 move_counter	game.h	/^	i32 move_counter;$/;"	m	struct:Entity
 move_counter	game.h	/^	i32 move_counter;$/;"	m	struct:__anon8
 move_direction	game.h	/^	Direction move_direction;$/;"	m	struct:__anon8
+move_entities	game.c	/^static void move_entities(Entities *entities, ScreenState *screen_state)$/;"	f	file:
 move_player	game.c	/^static void move_player(WorldState *world_state, PlayerState *player_state,$/;"	f	file:
 next_map_segment	game.h	/^	MapSegment *next_map_segment;$/;"	m	struct:__anon11
 next_state	ai.c	/^	AIStateIndex next_state;$/;"	m	struct:AIState	file:
+node	hashmap.c	/^	AStarNode node;$/;"	m	struct:AStarPair	file:
 num_entities	game.h	/^	i32 num_entities;$/;"	m	struct:Entities
 number_of_planes	game.h	/^	u16 number_of_planes;$/;"	m	struct:__anon1
+parent	game.h	/^	Vec2 parent;$/;"	m	struct:AStarNode
+path_cache	game.h	/^	PathCache path_cache;$/;"	m	struct:Entity
+path_counter	game.h	/^	i32 path_counter;$/;"	m	struct:Entity
 pixel_x	game.h	/^	i32 pixel_x;$/;"	m	struct:__anon8
 pixel_y	game.h	/^	i32 pixel_y;$/;"	m	struct:__anon8
 player_sprites	game.h	/^	char player_sprites[MAX_PLAYER_SPRITE_SIZE];$/;"	m	struct:__anon8
 player_state	game.h	/^	PlayerState player_state;$/;"	m	struct:Memory
 playing	game.h	/^	bool playing;$/;"	m	struct:__anon16
+position	game.h	/^	Vec2 position;$/;"	m	struct:AStarNode
 position	game.h	/^	Vec2 position;$/;"	m	struct:Entity
 red_mask	game.h	/^	u32 red_mask;$/;"	m	struct:__anon1
 render_entities	game.c	/^static void render_entities(i32 *image_buffer, MapSegment *map_segment)$/;"	f	file:
@@ -233,8 +263,10 @@ u16	sdl_main.c	/^typedef uint16_t u16;$/;"	t	file:
 u32	sdl_main.c	/^typedef uint32_t u32;$/;"	t	file:
 u64	sdl_main.c	/^typedef uint64_t u64;$/;"	t	file:
 u8	sdl_main.c	/^typedef uint8_t u8;$/;"	t	file:
+util_abs	util.c	/^i32 util_abs(i32 input)$/;"	f
 util_bit_scan_forward_u	util.c	/^i32 util_bit_scan_forward_u(u32 number)$/;"	f
 util_compactify_three_u32	util.c	/^u32 util_compactify_three_u32(u32 a, u32 b, u32 c)$/;"	f
+util_compactify_two_u32	util.c	/^u32 util_compactify_two_u32(u32 a, u32 b)$/;"	f
 util_convert_tile_to_pixel	util.c	/^i32 util_convert_tile_to_pixel(i32 tile_value, CoordDimension dimension)$/;"	f
 value	game.h	/^	u64 value;$/;"	m	struct:IntPair
 vertical_resolution	game.h	/^	i32 vertical_resolution;$/;"	m	struct:__anon1

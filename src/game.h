@@ -34,6 +34,7 @@
 #define TARGET_FRAME_RATE 60
 #define MAX_PLAYER_SPRITE_SIZE 100 * 1024
 #define MAX_SEGMENT_ENTITIES 50
+#define MAX_PATH_LENGTH 5
 
 struct Memory;
 
@@ -106,12 +107,20 @@ typedef enum {
 	AIST_ENEMY_CHASE,
 } AIStateIndex;
 
+typedef struct PathCache {
+	Vec2 data[MAX_PATH_LENGTH];
+	i32 length;
+} PathCache;
+
 typedef struct Entity {
 	Vec2 position;
 	AIStateIndex current_ai_state;
 	AIStateIndex idle_ai_state;
 	i32 ai_counter;
+	i32 move_counter;
+	i32 path_counter;
 	Direction face_direction;
+	PathCache path_cache;
 } Entity;
 
 typedef struct Entities {
@@ -149,6 +158,13 @@ typedef struct IntHashMap {
 	struct Memory *memory;
 	void *(*alloc_func)(struct Memory *, size_t);
 } IntHashMap;
+
+typedef struct AStarNode {
+	i32 g_cost;
+	i32 h_cost;
+	Vec2 parent;
+	Vec2 position;
+} AStarNode;
 
 typedef struct {
 	MapSegment *current_map_segment;

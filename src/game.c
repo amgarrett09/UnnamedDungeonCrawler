@@ -34,6 +34,7 @@ static size_t load_bitmap(const char file_path[], void *load_location,
 			  size_t max_size);
 static void move_player(WorldState *world_state, PlayerState *player_state,
 			ScreenState *screen_state);
+static void move_entities(Entities *entities, ScreenState *screen_state);
 static void handle_player_collision(WorldState *world_state,
 				    PlayerState *player_state, Input *input,
 				    ScreenState *screen_state);
@@ -136,6 +137,7 @@ void game_update_and_render(Memory *memory, Input *input,
 		Entities *entities =
 			&world_state->current_map_segment->entities;
 		ai_run_ai_system(entities, world_state, player_state);
+		move_entities(entities, screen_state);
 		move_player(world_state, player_state, screen_state);
 	}
 
@@ -401,10 +403,10 @@ static size_t load_bitmap(const char file_path[], void *load_location,
 	u32 alpha_mask = header->alpha_mask;
 
 	/* Discard header and copy image data to location */
-	char *image_data = ((char *)header) + image_offset;
-	Bitmap *bmp      = (Bitmap *)load_location;
-	bmp->width       = image_width;
-	bmp->height      = image_height;
+	unsigned char *image_data = ((unsigned char *)header) + image_offset;
+	Bitmap *bmp               = (Bitmap *)load_location;
+	bmp->width                = image_width;
+	bmp->height               = image_height;
 
 	memcpy(bmp->data, image_data, image_width * image_height * 4);
 
@@ -483,6 +485,23 @@ static void move_player(WorldState *world_state, PlayerState *player_state,
 	}
 
 	player_state->move_counter -= TILE_WIDTH / world_state->turn_duration;
+}
+
+static void move_entities(Entities *entities, ScreenState *screen_state)
+{
+	for (i32 i = 0; i < entities->num_entities; i++) {
+		Entity *ent = &entities->data[i];
+		if (ent->current_ai_state == AIST_ENEMY_CHASE) {
+			hot_tile_push(screen_state, ent->position.x,
+				      ent->position.y - 1);
+			hot_tile_push(screen_state, ent->position.x,
+				      ent->position.y + 1);
+			hot_tile_push(screen_state, ent->position.x - 1,
+				      ent->position.y);
+			hot_tile_push(screen_state, ent->position.x + 1,
+				      ent->position.y);
+		}
+	}
 }
 
 static void render_entities(i32 *image_buffer, MapSegment *map_segment)
@@ -589,7 +608,7 @@ static void render_map_segment(i32 *image_buffer, MapSegment *map_segment,
 			i32 target_x = column * TILE_WIDTH;
 			i32 tile_data =
 				tiles[row * SCREEN_WIDTH_TILES + column];
-			i32 bg_tile_number = 
+			i32 bg_tile_number =
 				(tile_data & TM_BG_TILE) >> TM_BG_TILE_SHIFT;
 			i32 fg_tile_number = tile_data & TM_FG_TILE;
 

@@ -16,8 +16,10 @@
  */
 
 /*
- * Dependencies: game.h, util.c
+ * Dependencies: game.h, util.c, hashmap.c
  */
+
+#define MAX_ASTAR_NODES 128
 
 typedef struct AIState {
 	i32 duration; /* in turns */
@@ -101,11 +103,6 @@ static void ai_enemy_idle(Entity *entity, WorldState *world_state,
 		break;
 	}
 
-	/* Cast a ray between entity and player */
-	float opposite_length = player_pixel_y - ent_pixel_y;
-	float adjacent_length = player_pixel_x - ent_pixel_x;
-	float angle_tan       = -1.0f * (opposite_length / adjacent_length);
-
 	bool player_visible = true;
 
 	/* Handle special cases where there's no angle between ent and player */
@@ -157,6 +154,11 @@ static void ai_enemy_idle(Entity *entity, WorldState *world_state,
 
 		goto raycast_end;
 	}
+
+	/* Cast a ray between entity and player */
+	float opposite_length = player_pixel_y - ent_pixel_y;
+	float adjacent_length = player_pixel_x - ent_pixel_x;
+	float angle_tan       = -1.0f * (opposite_length / adjacent_length);
 
 	/* Check horizontal intersections */
 	i32 y_offset = player_is_above ? -TILE_HEIGHT : TILE_HEIGHT;
@@ -292,8 +294,215 @@ raycast_end:
 	}
 }
 
+static i32 astar_compute_fcost(AStarNode node)
+{
+	return node.g_cost + node.h_cost;
+}
+
+static i32 astar_compute_distance(Vec2 pos1, Vec2 pos2)
+{
+	i32 x = util_abs(pos1.x - pos2.x);
+	i32 y = util_abs(pos1.y - pos2.y);
+
+	i32 out = x >= y ? 14 * y + 10 * (x - y) : 14 * x + 10 * (y - x);
+
+	return out;
+}
+
+static i32 astar_delete_open_node(AStarNode open_nodes[MAX_ASTAR_NODES],
+				  i32 node_index, i32 open_nodes_length)
+{
+	if (open_nodes_length == 0)
+		return 0;
+	i32 last_index         = open_nodes_length - 1;
+	AStarNode temp         = open_nodes[last_index];
+	open_nodes[last_index] = open_nodes[node_index];
+	open_nodes[node_index] = temp;
+
+	return last_index;
+}
+
+static i32 astar_find_open_node(AStarNode open_nodes[MAX_ASTAR_NODES],
+				Vec2 position, i32 open_nodes_length)
+{
+	i32 index = -1;
+	for (int i = 0; i < open_nodes_length; i++) {
+		AStarNode node = open_nodes[i];
+
+		if (node.position.x == position.x &&
+		    node.position.y == position.y) {
+			index = i;
+			break;
+		}
+	}
+
+	return index;
+}
+
 static void ai_enemy_chase(Entity *entity, WorldState *world_state,
 			   PlayerState *player_state)
 {
-	printf("%s\n", "Chasing!");
+	if (entity->path_counter) {
+		i32 index = MAX_PATH_LENGTH - entity->path_counter;
+		if (index < entity->path_cache.length) {
+			entity->position = entity->path_cache.data[index];
+		}
+		entity->path_counter--;
+		return;
+	}
+	Vec2 ent_pos    = entity->position;
+	Vec2 player_pos = {.x = player_state->tile_x,
+			   .y = player_state->tile_y};
+
+	AStarNode open_nodes[MAX_ASTAR_NODES] = {};
+	AStarHashMap closed_nodes             = {};
+	i32 open_nodes_length                 = 0;
+
+	open_nodes[open_nodes_length].position.x = ent_pos.x;
+	open_nodes[open_nodes_length].position.y = ent_pos.y;
+	open_nodes[open_nodes_length].parent.x   = -1;
+	open_nodes[open_nodes_length].parent.y   = -1;
+	open_nodes[open_nodes_length].g_cost     = 0;
+	open_nodes[open_nodes_length++].h_cost =
+		astar_compute_distance(player_pos, ent_pos);
+
+	AStarNode current_node = open_nodes[0];
+	i32 current_index      = 0;
+
+	while (open_nodes_length > 0 && open_nodes_length < MAX_ASTAR_NODES) {
+		current_node  = open_nodes[0];
+		current_index = 0;
+		/* Find node with lowest fcost */
+		for (i32 i = 0; i < open_nodes_length; i++) {
+			i32 probing_node_fcost =
+				astar_compute_fcost(open_nodes[i]);
+			i32 current_node_fcost =
+				astar_compute_fcost(current_node);
+
+			if (probing_node_fcost < current_node_fcost ||
+			    (probing_node_fcost == current_node_fcost &&
+			     open_nodes[i].h_cost < current_node.h_cost)) {
+				current_node  = open_nodes[i];
+				current_index = i;
+			}
+		}
+
+		/* Remove current node from open and add to closed */
+		u32 key = util_compactify_two_u32(current_node.position.x,
+						  current_node.position.y);
+		hash_insert_astar(&closed_nodes, key, current_node);
+		open_nodes_length = astar_delete_open_node(
+			open_nodes, current_index, open_nodes_length);
+
+		/* If this is our target, we're done */
+		if (current_node.position.x == player_pos.x &&
+		    current_node.position.y == player_pos.y) {
+			break;
+		}
+
+		Vec2 neighbors[4] = {
+			{current_node.position.x, current_node.position.y - 1},
+			{current_node.position.x + 1, current_node.position.y},
+			{current_node.position.x, current_node.position.y + 1},
+			{current_node.position.x - 1, current_node.position.y},
+		};
+
+		for (i32 i = 0; i < 4; i++) {
+			Vec2 neighbor = neighbors[i];
+			i32 map_segment_index =
+				world_state->current_map_segment->index;
+			u32 tprop_key = util_compactify_three_u32(
+				map_segment_index, neighbor.x, neighbor.y);
+			u64 tile_props = hash_get_int(&world_state->tile_props,
+						      tprop_key);
+			/* If neighbor not traversable, skip */
+			if ((tile_props & TPROP_HAS_COLLISION) ||
+			    (tile_props & TPROP_ENTITY)) {
+				continue;
+			}
+
+			u32 closed_key =
+				util_compactify_two_u32(neighbor.x, neighbor.y);
+			AStarNode closed_node =
+				hash_get_astar(&closed_nodes, closed_key);
+
+			/* If neighbor already closed, skip */
+			if (closed_node.position.x > -1) {
+				continue;
+			}
+
+			i32 new_cost_to_neighbor = current_node.g_cost +
+				astar_compute_distance(current_node.position,
+						       neighbor);
+			i32 neighbor_index = astar_find_open_node(
+				open_nodes, neighbor, open_nodes_length);
+
+			if (neighbor_index < 0) {
+				/*
+				 * Add neighbor to open nodes and set
+				 * parent to current node
+				 */
+				AStarNode new_node = {
+					.position = {neighbor.x, neighbor.y},
+					.parent   = {current_node.position.x,
+                                                   current_node.position.y},
+					.g_cost   = new_cost_to_neighbor,
+					.h_cost   = astar_compute_distance(
+                                                neighbor, player_pos)};
+
+				open_nodes[open_nodes_length++] = new_node;
+			} else if (new_cost_to_neighbor <
+				   open_nodes[neighbor_index].g_cost) {
+				/*
+				 * Update parent and g and h costs of neighbor
+				 * if already in open nodes
+				 */
+				open_nodes[neighbor_index].parent.x =
+					current_node.position.x;
+				open_nodes[neighbor_index].parent.y =
+					current_node.position.y;
+				open_nodes[neighbor_index].g_cost =
+					new_cost_to_neighbor;
+				open_nodes[neighbor_index].h_cost =
+					astar_compute_distance(neighbor,
+							       player_pos);
+			}
+		}
+	}
+
+	Vec2 path_positions[MAX_ASTAR_NODES] = {};
+	i32 path_position_length             = 0;
+
+	path_positions[path_position_length++] = current_node.position;
+
+	Vec2 parent = current_node.parent;
+	while (path_position_length < MAX_ASTAR_NODES) {
+		if (parent.x == ent_pos.x && parent.y == ent_pos.y) {
+			break;
+		}
+
+		u32 key = util_compactify_two_u32(parent.x, parent.y);
+		AStarNode parent_node = hash_get_astar(&closed_nodes, key);
+
+		if (parent_node.position.x < 0)
+			break;
+
+		path_positions[path_position_length++] = parent_node.position;
+		parent                                 = parent_node.parent;
+	}
+
+	i32 j = 0;
+	for (i32 i = path_position_length - 1; i >= 0; i--) {
+		if (j >= MAX_PATH_LENGTH)
+			break;
+
+		entity->path_cache.data[j] = path_positions[i];
+		j++;
+	}
+
+	entity->path_cache.length = j;
+	entity->path_counter      = MAX_PATH_LENGTH;
+	entity->position =
+		entity->path_cache.data[MAX_PATH_LENGTH - entity->path_counter];
+	entity->path_counter--;
 }
