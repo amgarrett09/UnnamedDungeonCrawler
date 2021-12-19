@@ -271,26 +271,33 @@ static void display_bitmap_tile(u32 *restrict image_buffer,
 			u32 buffer_color = image_buffer[target_pixel];
 
 			/* Linear Alpha Blend bmp with existing data in buffer*/
-			u32 alpha     = (bmp_color & 0xff000000) >> 24;
-			float opacity = alpha / 255.0f;
+			u32 bmp_alpha     = (bmp_color & 0xff000000) >> 24;
+			float bmp_opacity = bmp_alpha / 255.0f;
 
 			u32 bmp_red   = (bmp_color & 0x00ff0000) >> 16;
 			u32 bmp_green = (bmp_color & 0x0000ff00) >> 8;
 			u32 bmp_blue  = (bmp_color & 0x000000ff);
 
+			u32 buffer_alpha = (buffer_color & 0xff000000) >> 24;
+			float buffer_opacity = buffer_alpha / 255.0f;
+
 			u32 buffer_red   = (buffer_color & 0x00ff0000) >> 16;
 			u32 buffer_green = (buffer_color & 0x0000ff00) >> 8;
 			u32 buffer_blue  = (buffer_color & 0x000000ff);
 
-			float new_red = ((1 - opacity) * buffer_red) +
-				(opacity * bmp_red);
-			float new_green = ((1 - opacity) * buffer_green) +
-				(opacity * bmp_green);
-			float new_blue = ((1 - opacity) * buffer_blue) +
-				(opacity * bmp_blue);
+			float inv_bmp_opacity = (1.0f - bmp_opacity);
+			float new_alpha       = 255.0f *
+				(bmp_opacity + buffer_opacity -
+				 bmp_opacity * buffer_opacity);
+			float new_red = inv_bmp_opacity * buffer_red + bmp_red;
+			float new_green =
+				inv_bmp_opacity * buffer_green + bmp_green;
+			float new_blue =
+				inv_bmp_opacity * buffer_blue + bmp_blue;
 
-			u32 new_color = ((u32)new_red << 16) |
-				((u32)new_green << 8) | (u32)new_blue;
+			u32 new_color = ((u32)new_alpha << 24) |
+				((u32)new_red << 16) | ((u32)new_green << 8) |
+				(u32)new_blue;
 
 			image_buffer[target_pixel] = new_color;
 		}
@@ -432,12 +439,24 @@ static size_t load_bitmap(const char file_path[], void *load_location,
 	for (i32 i = 0; i < image_width * image_height; i++) {
 		u32 color = image[i];
 
+		/* Pre-multiply alpha */
+		u32 alpha     = (((color & alpha_mask) >> alpha_shift) & 0xFF);
+		float opacity = alpha / 255.0f;
+
+		u32 red       = (((color & red_mask) >> red_shift) & 0xFF);
+		u32 green     = (((color & green_mask) >> green_shift) & 0xFF);
+		u32 blue      = (((color & blue_mask) >> blue_shift) & 0xFF);
+		float new_red = opacity * (float)red;
+		float new_green = opacity * (float)green;
+		float new_blue  = opacity * (float)blue;
+		red             = (u32)new_red;
+		green           = (u32)new_green;
+		blue            = (u32)new_blue;
+
 		/* Swizzle color values to ensure ARGB order */
-		u32 alpha = (((color & alpha_mask) >> alpha_shift) & 0xFF)
-			<< 24;
-		u32 red   = (((color & red_mask) >> red_shift) & 0xFF) << 16;
-		u32 green = (((color & green_mask) >> green_shift) & 0xFF) << 8;
-		u32 blue  = (((color & blue_mask) >> blue_shift) & 0xFF);
+		alpha = alpha << 24;
+		red   = red << 16;
+		green = green << 8;
 
 		image[i] = alpha | red | green | blue;
 	}
