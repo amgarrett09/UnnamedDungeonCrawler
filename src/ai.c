@@ -341,14 +341,41 @@ static i32 astar_find_open_node(AStarNode open_nodes[MAX_ASTAR_NODES],
 	return index;
 }
 
+static void ai_update_entity_position(Entity *entity, WorldState *world_state)
+{
+	u32 map_segment = (u32)world_state->current_map_segment->index;
+	u32 x           = (u32)entity->position.x;
+	u32 y           = (u32)entity->position.y;
+	IntHashMap *map = &world_state->tile_props;
+
+	/* Remove ent data from old position tile props */
+	u32 key            = util_compactify_three_u32(map_segment, x, y);
+	u64 original_props = hash_get_int(map, key);
+	u64 new_props      = original_props & ~((u32)TPROP_ENTITY);
+
+	(void)hash_insert_int(map, key, new_props);
+
+	i32 index        = MAX_PATH_LENGTH - entity->path_counter;
+	entity->position = entity->path_cache.data[index];
+
+	/* Add ent to new position tile props */
+	x = (u32)entity->position.x;
+	y = (u32)entity->position.y;
+
+	key            = util_compactify_three_u32(map_segment, x, y);
+	original_props = hash_get_int(map, key);
+	new_props = original_props | ((u64)entity->id << TPROP_ENTITY_SHIFT);
+
+	(void)hash_insert_int(map, key, new_props);
+}
+
 static void ai_enemy_chase(Entity *entity, WorldState *world_state,
 			   PlayerState *player_state)
 {
-	/* TODO: update enemy collision */
 	if (entity->path_counter) {
 		i32 index = MAX_PATH_LENGTH - entity->path_counter;
 		if (index < entity->path_cache.length) {
-			entity->position = entity->path_cache.data[index];
+			ai_update_entity_position(entity, world_state);
 		}
 		entity->path_counter--;
 		return;
@@ -511,7 +538,7 @@ static void ai_enemy_chase(Entity *entity, WorldState *world_state,
 
 	entity->path_cache.length = j;
 	entity->path_counter      = MAX_PATH_LENGTH;
-	entity->position =
-		entity->path_cache.data[MAX_PATH_LENGTH - entity->path_counter];
+
+	ai_update_entity_position(entity, world_state);
 	entity->path_counter--;
 }

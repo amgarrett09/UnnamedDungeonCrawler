@@ -78,6 +78,8 @@ void game_initialize_memory(Memory *memory, ScreenState *screen_state, i32 dt)
 			&world_state->current_map_segment->entities;
 		entities->data[entities->num_entities].position =
 			test_entity_position;
+		entities->data[entities->num_entities].id =
+			entities->num_entities + 1;
 		entities->data[entities->num_entities++].face_direction =
 			RIGHTDIR;
 

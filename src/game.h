@@ -113,6 +113,7 @@ typedef struct PathCache {
 } PathCache;
 
 typedef struct Entity {
+	i32 id;
 	Vec2 position;
 	AIStateIndex current_ai_state;
 	AIStateIndex idle_ai_state;
